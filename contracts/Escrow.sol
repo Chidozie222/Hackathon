@@ -12,8 +12,8 @@ contract Escrow {
 	event DeliveryConfirmed(address indexed buyer, uint amount);
 	event Refunded(address indexed buyer, uint amount);
 
-	constructor(address _seller, address _arbiter) payable {
-		buyer = msg.sender;
+	constructor(address _buyer, address _seller, address _arbiter) payable {
+		buyer = _buyer;
 		seller = _seller;
 		arbiter = _arbiter;
 		emit Deposit(buyer, msg.value);
