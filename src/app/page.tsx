@@ -1,64 +1,72 @@
 "use client";
-import { useConnect, useAccount, useDisconnect } from 'wagmi';
-import { config } from '../config';
-import EscrowCreate from '../components/EscrowCreate';
-import EscrowList from '../components/EscrowList';
 
-function App() {
-  const { address, isConnected } = useAccount();
-  const { connectors, connect } = useConnect();
-  const { disconnect } = useDisconnect();
-
-  return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-8 font-sans">
-      <header className="flex justify-between items-center mb-10 max-w-4xl mx-auto">
-        <h1 className="text-3xl font-extrabold bg-gradient-to-r from-emerald-400 to-blue-500 bg-clip-text text-transparent">
-            EtherScrow AI
-        </h1>
-        <div className="flex gap-2">
-            {isConnected ? (
-                <div className="flex items-center gap-4">
-                    <span className="text-sm bg-slate-800 px-3 py-1 rounded-full border border-slate-700">{address?.slice(0,6)}...{address?.slice(-4)}</span>
-                    <button onClick={() => disconnect()} className="text-sm text-red-400 hover:text-red-300">Disconnect</button>
+export default function HomePage() {
+    return (
+        <div className="min-h-screen bg-slate-950 text-slate-100">
+            {/* Hero Section */}
+            <div className="relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-emerald-600/20 to-blue-600/20"></div>
+                <div className="relative max-w-7xl mx-auto px-8 py-20">
+                    <div className="text-center">
+                        <h1 className="text-5xl md:text-6xl font-extrabold mb-6 bg-gradient-to-r from-emerald-400 to-blue-500 bg-clip-text text-transparent">
+                            Secure Delivery Platform
+                        </h1>
+                        <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
+                            Escrow-backed delivery system with blockchain security. Pay only when you receive your product.
+                        </p>
+                        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                            <a
+                                href="/seller/register"
+                                className="px-8 py-4 bg-emerald-600 hover:bg-emerald-500 rounded-lg font-bold text-lg transition"
+                            >
+                                🛍️ Register as Seller
+                            </a>
+                            <a
+                                href="/rider/register"
+                                className="px-8 py-4 bg-purple-600 hover:bg-purple-500 rounded-lg font-bold text-lg transition"
+                            >
+                                🏍️ Register as Rider
+                            </a>
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-4 justify-center mt-4">
+                            <a
+                                href="/seller/dashboard"
+                                className="px-6 py-3 bg-slate-800 hover:bg-slate-700 border border-emerald-600 rounded-lg font-bold transition text-sm"
+                            >
+                                Seller Dashboard
+                            </a>
+                        </div>
+                    </div>
                 </div>
-            ) : (
-                connectors.map((connector) => (
-                    <button 
-                        key={connector.uid} 
-                        onClick={() => {
-                            console.log("Attempting to connect with", connector.name);
-                            connect({ connector }, {
-                                onError: (err) => {
-                                    console.error("Connection failed", err);
-                                    alert("Connection Failed: " + err.message);
-                                }
-                            });
-                        }}
-                        className="px-4 py-2 bg-slate-100 text-slate-900 rounded font-bold hover:bg-slate-200 transition cursor-pointer"
-                    >
-                        Connect {connector.name}
-                    </button>
-                ))
-            )}
-        </div>
-      </header>
-
-      <main className="max-w-2xl mx-auto">
-        {!isConnected ? (
-            <div className="text-center py-20">
-                <p className="text-xl text-slate-400">Please connect your wallet to start.</p>
             </div>
-        ) : (
-            <>
-                <EscrowCreate />
-                <EscrowList />
-            </>
-        )}
-      </main>
-    </div>
-  );
-}
 
-export default function Page() {
-  return <App />;
+            {/* Features */}
+            <div className="max-w-7xl mx-auto px-8 py-16">
+                <h2 className="text-3xl font-bold text-center mb-12">How It Works</h2>
+                <div className="grid md:grid-cols-3 gap-8">
+                    <div className="bg-slate-800 p-6 rounded-xl border border-slate-700">
+                        <div className="text-4xl mb-4">🛍️</div>
+                        <h3 className="text-xl font-bold mb-2">Sellers Create Orders</h3>
+                        <p className="text-slate-400">
+                            Upload product details, set price, add delivery addresses, and generate a unique QR code.
+                        </p>
+                    </div>
+                    <div className="bg-slate-800 p-6 rounded-xl border border-slate-700">
+                        <div className="text-4xl mb-4">💳</div>
+                        <h3 className="text-xl font-bold mb-2">Buyers Pay Securely</h3>
+                        <p className="text-slate-400">
+                            Payment is held in escrow until delivery is confirmed. Track your order in real-time.
+                        </p>
+                    </div>
+                    <div className="bg-slate-800 p-6 rounded-xl border border-slate-700">
+                        <div className="text-4xl mb-4">📦</div>
+                        <h3 className="text-xl font-bold mb-2">QR Verification</h3>
+                        <p className="text-slate-400">
+                            Riders scan QR at pickup, buyers scan at delivery. Funds auto-release on confirmation.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
 }

@@ -1,2 +1,17 @@
-src/app/api/payment/initialize/route.ts(18,33): error TS18047: 'response.data' is possibly 'null'.
-src/app/api/payment/initialize/route.ts(19,25): error TS18047: 'response.data' is possibly 'null'.
+.next/dev/types/validator.ts(135,31): error TS2344: Type 'typeof import("C:/Users/HomePC/Desktop/hackaton/src/app/api/orders/[id]/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/orders/[id]">'.
+  Types of property 'GET' are incompatible.
+    Type '(req: NextRequest, { params }: { params: { id: string; }; }) => Promise<NextResponse<{ success: boolean; order: Order; }> | NextResponse<{ success: boolean; error: any; }>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+.next/types/validator.ts(135,31): error TS2344: Type 'typeof import("C:/Users/HomePC/Desktop/hackaton/src/app/api/orders/[id]/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/orders/[id]">'.
+  Types of property 'GET' are incompatible.
+    Type '(req: NextRequest, { params }: { params: { id: string; }; }) => Promise<NextResponse<{ success: boolean; order: Order; }> | NextResponse<{ success: boolean; error: any; }>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+src/app/api/auth/register/route.ts(2,41): error TS2307: Cannot find module '../../../lib/database' or its corresponding type declarations.
+src/app/api/orders/create/route.ts(2,26): error TS2307: Cannot find module '../../../lib/database' or its corresponding type declarations.
+src/app/api/orders/create/route.ts(3,53): error TS2307: Cannot find module '../../../lib/qrcode' or its corresponding type declarations.

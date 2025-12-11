@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyPayment } from '../../../../lib/paystack';
-import { createCustodialEscrow } from '../../../../lib/serverWallet';
-import { addManagedEscrow } from '../../../../lib/db';
+import { verifyPayment } from '@/lib/paystack';
+import { createCustodialEscrow } from '@/lib/serverWallet';
+import { addManagedEscrow } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function GET(req: NextRequest) {
@@ -13,36 +13,57 @@ export async function GET(req: NextRequest) {
     }
 
     try {
-        const response = await verifyPayment(reference);
-        
-        if (response.status && response.data && response.data.status === 'success') {
-            // Payment successful!
-            const metadata = response.data.metadata as any;
-            const ethAmount = metadata?.custom_fields?.find((f: any) => f.variable_name === 'eth_amount')?.value || "0.0";
-            const sellerEmail = response.data.customer?.email || 'unknown@seller.com';
+        // MOCK PAYMENT - Always succeed if reference starts with mock_ref_
+        if (reference.startsWith('mock_ref_')) {
+            // Extract orderId from URL if present
+            const orderId = searchParams.get('orderId');
+            
+            if (orderId) {
+                // Get order details
+                const { getOrderById, getUserById } = await import('@/lib/database');
+                const order = getOrderById(orderId);
+                
+                if (!order) {
+                    return NextResponse.redirect(new URL('/?payment=failed&reason=order_not_found', req.url));
+                }
 
-            // Trigger On-Chain Escrow Creation
-            const { hash: txHash, escrowAddress } = await createCustodialEscrow(sellerEmail, ethAmount);
-
-            // Save to DB
-            const newEscrow = {
-                id: uuidv4(),
-                buyerEmail: 'current_user@demo.com', // In real app, get from session
-                sellerEmail,
-                amount: ethAmount,
-                status: 'PENDING' as const,
-                txHash,
-                escrowAddress: escrowAddress || undefined,
-                createdAt: Date.now(),
-                paymentReference: reference
-            };
-            addManagedEscrow(newEscrow);
-
-            // Redirect back to home with success
-            return NextResponse.redirect(new URL('/?payment=success&escrowId=' + newEscrow.id, req.url));
-        } else {
-             return NextResponse.redirect(new URL('/?payment=failed&reason=verification_failed', req.url));
+                const seller = getUserById(order.sellerId);
+                if (!seller?.walletAddress) {
+                    throw new Error("Seller wallet address not found");
+                }
+                
+                // Convert NGN to ETH equivalent for blockchain
+                // Using a simple conversion: 1 ETH = 1,000,000 NGN (mock rate)
+                const amountInNGN = parseFloat(order.price);
+                const amountInETH = (amountInNGN / 1000000).toFixed(4);
+                
+                // Create blockchain escrow with the converted amount
+                const { createCustodialEscrow } = await import('@/lib/serverWallet');
+                const { hash: txHash, escrowAddress } = await createCustodialEscrow(
+                    seller.walletAddress, // use actual wallet address
+                    amountInETH    // amount in ETH
+                );
+                
+                // Update order status to PAID and save blockchain details
+                const { updateOrder } = await import('@/lib/database');
+                updateOrder(orderId, {
+                    status: 'PAID',
+                    paymentReference: reference,
+                    escrowAddress: escrowAddress || undefined
+                });
+                
+                console.log(`✅ Payment verified for order ${orderId}`);
+                console.log(`💰 Amount: ₦${amountInNGN} → ${amountInETH} ETH`);
+                console.log(`⛓️ Blockchain escrow created at: ${escrowAddress}`);
+                console.log(`📝 Transaction hash: ${txHash}`);
+                
+                // Redirect to tracking page
+                return NextResponse.redirect(new URL(`/order/${orderId}/track`, req.url));
+            }
         }
+        
+        // If not a mock payment or no orderId, redirect to error
+        return NextResponse.redirect(new URL('/?payment=failed&reason=invalid_reference', req.url));
 
     } catch (error: any) {
         console.error("Payment Verification Error:", error);

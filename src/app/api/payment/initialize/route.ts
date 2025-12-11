@@ -1,26 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { initializePayment } from '../../../../lib/paystack';
+import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(req: NextRequest) {
   try {
-    const { amount, sellerEmail } = await req.json();
-    
-    // Validate inputs
+    const { amount, sellerEmail, orderId } = await req.json();    
+    // Validation
     if (!amount || !sellerEmail) {
         return NextResponse.json({ success: false, error: "Missing amount or seller email" }, { status: 400 });
     }
 
-    const response = await initializePayment(sellerEmail, amount);
+    // MOCK PAYMENT - Generate fake reference and redirect URL
+    const reference = `mock_ref_${uuidv4()}`;
+    const mockCheckoutUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/mock-checkout?amount=${amount}&reference=${reference}&orderId=${orderId || ''}`;
     
-    if (response.status && response.data) {
-         return NextResponse.json({ 
-             success: true, 
-             authorization_url: response.data.authorization_url,
-             reference: response.data.reference 
-         });
-    } else {
-        return NextResponse.json({ success: false, error: response.message }, { status: 400 });
-    }
+    return NextResponse.json({ 
+        success: true, 
+        authorization_url: mockCheckoutUrl,
+        reference: reference 
+    });
 
   } catch (error: any) {
     console.error(error);
