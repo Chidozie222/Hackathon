@@ -26,10 +26,10 @@ export default function Navbar() {
             <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
                 <Link href="/" className="flex items-center gap-2 group">
                     <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-blue-500 flex items-center justify-center text-white font-bold text-lg group-hover:scale-110 transition-transform">
-                        S
+                        TL
                     </div>
                     <span className="text-xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
-                        SecureDrop
+                        TrustLock
                     </span>
                 </Link>
 
