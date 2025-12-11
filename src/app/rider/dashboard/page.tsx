@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSocket, joinRiderDashboard } from '@/lib/socket';
 
 export default function RiderDashboard() {
     const router = useRouter();
@@ -10,6 +11,7 @@ export default function RiderDashboard() {
     const [completedJobs, setCompletedJobs] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [accepting, setAccepting] = useState<string | null>(null);
+    const { socket, isConnected } = useSocket();
 
     useEffect(() => {
         // Check if user is logged in
@@ -29,10 +31,39 @@ export default function RiderDashboard() {
         setUser(userData);
         fetchJobs(userData.id);
 
-        // Auto-refresh every 30 seconds
-        const interval = setInterval(() => fetchJobs(userData.id), 30000);
-        return () => clearInterval(interval);
-    }, [router]);
+        // Set up Socket.io real-time updates
+        if (isConnected && socket) {
+            joinRiderDashboard(userData.id);
+
+            // Listen for new jobs
+            socket.on('new-job', (job: any) => {
+                console.log('📡 New job available!', job);
+                setAvailableJobs(prev => [job, ...prev]);
+                // Optional: Show notification
+                if (Notification.permission === 'granted') {
+                    new Notification('New Delivery Job!', {
+                        body: `${job.itemName} - ₦${job.price}`,
+                        icon: '/icon.png'
+                    });
+                }
+            });
+
+            // Listen for rider-specific job updates
+            socket.on('rider-job-update', (job: any) => {
+                console.log('📡 Job update received');
+                fetchJobs(userData.id); // Refresh jobs
+            });
+
+            return () => {
+                socket.off('new-job');
+                socket.off('rider-job-update');
+            };
+        } else {
+            // Fallback to polling
+            const interval = setInterval(() => fetchJobs(userData.id), 30000);
+            return () => clearInterval(interval);
+        }
+    }, [router, socket, isConnected]);
 
     const fetchJobs = async (riderId: string) => {
         try {

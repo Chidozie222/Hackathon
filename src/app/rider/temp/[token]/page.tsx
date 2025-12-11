@@ -133,6 +133,27 @@ export default function RiderTempDashboard() {
         };
     }, []);
 
+    // Check if access token is expired (after delivery)
+    if (order && (order.riderAccessToken === 'EXPIRED' || order.status === 'DELIVERED')) {
+        return (
+            <div className="min-h-screen bg-slate-950 text-slate-100 p-8">
+                <div className="max-w-4xl mx-auto text-center">
+                    <div className="bg-slate-800 p-8 rounded-xl border border-red-600">
+                        <div className="text-6xl mb-4">🔒</div>
+                        <h1 className="text-2xl font-bold mb-4 text-red-400">Access Link Expired</h1>
+                        <p className="text-slate-300 mb-6">
+                            This delivery has been completed and the access link has been disabled for security and data efficiency.
+                        </p>
+                        <div className="bg-emerald-900/20 border border-emerald-600 rounded p-4">
+                            <p className="text-emerald-300">✅ Order successfully delivered!</p>
+                            <p className="text-sm text-slate-400 mt-2">Thank you for using our delivery service.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen bg-slate-950 text-slate-100 p-8">
             <div className="max-w-4xl mx-auto">

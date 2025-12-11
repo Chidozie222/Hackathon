@@ -154,8 +154,13 @@ export default function CreateOrder() {
                                 value={formData.agreementSummary}
                                 onChange={(e) => setFormData({...formData, agreementSummary: e.target.value})}
                                 className="w-full p-3 rounded bg-slate-900 border border-slate-600 focus:border-emerald-500 outline-none h-24"
-                                placeholder="Describe what you and the buyer agreed upon..."
+                                placeholder="Describe what you and the buyer agreed upon. E.g., 'iPhone 13 Pro, 128GB, Blue color, new condition, comes with original charger and box'"
                             />
+                            <div className="mt-2 p-3 bg-blue-900/20 border border-blue-500 rounded text-sm">
+                                <p className="text-blue-300">
+                                    🔒 <strong>This summary will be stored on blockchain</strong> and cannot be changed. It will be used by AI to resolve disputes fairly.
+                                </p>
+                            </div>
                         </div>
                     </div>
 

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getOrderById, updateOrder } from '@/lib/database';
 import { approveCustodialEscrow } from '@/lib/serverWallet';
+import { cleanupDeliveredOrder, sanitizeDeliveredOrder } from '@/lib/orderCleanup';
+import { broadcastOrderUpdate } from '@/lib/socketBroadcast';
 
 export async function POST(req: NextRequest) {
     try {
@@ -40,6 +42,28 @@ export async function POST(req: NextRequest) {
             deliveryTime: Date.now()
         });
 
+        // Get updated order
+        const updatedOrder = getOrderById(orderId);
+
+        // Broadcast real-time update to all clients watching this order
+        if (updatedOrder) {
+            broadcastOrderUpdate(orderId, updatedOrder);
+        }
+
+        // Cleanup: Delete photos and invalidate tokens
+        try {
+            await cleanupDeliveredOrder(order);
+            
+            // Sanitize order data
+            const sanitizedData = sanitizeDeliveredOrder(order);
+            updateOrder(orderId, sanitizedData);
+            
+            console.log('🧹 Order data cleaned up and sanitized');
+        } catch (cleanupError) {
+            console.error('Cleanup warning:', cleanupError);
+            // Continue even if cleanup fails
+        }
+
         // Release funds from escrow
         if (order.escrowAddress) {
             try {
@@ -49,7 +73,7 @@ export async function POST(req: NextRequest) {
                 
                 return NextResponse.json({ 
                     success: true, 
-                    message: "Delivery confirmed and funds released!",
+                    message: "Delivery confirmed, funds released, and data cleaned up!",
                     txHash 
                 });
             } catch (escrowError: any) {
@@ -57,7 +81,7 @@ export async function POST(req: NextRequest) {
                 // Still mark as delivered even if blockchain fails
                 return NextResponse.json({ 
                     success: true, 
-                    message: "Delivery confirmed but escrow release failed",
+                    message: "Delivery confirmed and data cleaned up, but escrow release failed",
                     warning: escrowError.message 
                 });
             }
@@ -65,7 +89,7 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({ 
             success: true, 
-            message: "Delivery confirmed!" 
+            message: "Delivery confirmed and data cleaned up!" 
         });
 
     } catch (error: any) {

@@ -42,6 +42,16 @@ export interface Order {
     buyerLink: string;
     paymentReference?: string;
     escrowAddress?: string;
+    agreementHash?: string;
+    agreementTxHash?: string;
+    cancellationRequested?: boolean;
+    cancellationReason?: string;
+    cancellationRequestedAt?: number;
+    disputeResolution?: {
+        aiDecision: 'REFUND_BUYER' | 'PAY_SELLER';
+        aiExplanation: string;
+        resolvedAt: number;
+    };
     pickupTime?: number;
     deliveryTime?: number;
     createdAt: number;

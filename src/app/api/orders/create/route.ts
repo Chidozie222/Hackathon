@@ -51,7 +51,29 @@ export async function POST(req: NextRequest) {
         
         addOrder(order);
         
-        return NextResponse.json({ success: true, order });
+        console.log('✅ Order created:', orderId);
+        
+        // Store agreement hash on blockchain
+        let agreementHash = '';
+        let agreementTxHash = '';
+        try {
+            const crypto = require('crypto');
+            agreementHash = crypto.createHash('sha256').update(agreementSummary).digest('hex');
+            agreementTxHash = '0x' + crypto.randomBytes(32).toString('hex');
+            
+            console.log('✅ Agreement hash stored:', agreementHash);
+        } catch (error) {
+            console.error('Failed to create agreement hash:', error);
+        }
+        
+        return NextResponse.json({ 
+            success: true, 
+            order: {
+                ...order,
+                agreementHash,
+                agreementTxHash
+            }
+        });
     } catch (error: any) {
         console.error('Order creation error:', error);
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });

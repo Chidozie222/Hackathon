@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getOrderById, updateOrder } from '@/lib/database';
+import { broadcastOrderUpdate } from '@/lib/socketBroadcast';
 
 export async function POST(req: NextRequest) {
     try {
@@ -42,6 +43,12 @@ export async function POST(req: NextRequest) {
                 status: 'IN_TRANSIT',
                 pickupTime: Date.now()
             });
+
+            // Broadcast real-time update
+            const updatedOrder = getOrderById(orderId);
+            if (updatedOrder) {
+                broadcastOrderUpdate(orderId, updatedOrder);
+            }
 
             console.log(`✅ Pickup confirmed for order ${orderId} - now IN_TRANSIT`);
             

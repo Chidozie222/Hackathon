@@ -1,21 +1,53 @@
 "use client";
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useSocket, joinOrderRoom, leaveOrderRoom } from '@/lib/socket';
 
 export default function OrderSuccess() {
     const params = useParams();
     const router = useRouter();
     const [order, setOrder] = useState<any>(null);
+    const { socket, isConnected } = useSocket();
 
     useEffect(() => {
-        fetch(`/api/orders/${params.id}`)
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    setOrder(data.order);
-                }
+        const fetchOrder = () => {
+            fetch(`/api/orders/${params.id}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        setOrder(data.order);
+                    }
+                });
+        };
+
+        // Initial fetch
+        fetchOrder();
+
+        // Set up Socket.io real-time updates
+        if (isConnected && socket) {
+            joinOrderRoom(params.id as string);
+
+            socket.on('order-updated', (updatedOrder: any) => {
+                console.log('📡 Seller: Real-time order update');
+                setOrder(updatedOrder);
             });
-    }, [params.id]);
+
+            // Listen for rider location updates
+            socket.on('rider-location-update', (data: any) => {
+                console.log('📍 Rider location update:', data);
+                // You can use this for real-time map updates
+            });
+
+            return () => {
+                socket.off('order-updated');
+                socket.off('rider-location-update');
+                leaveOrderRoom(params.id as string);
+            };
+        } else {
+            const interval = setInterval(fetchOrder, 5000);
+            return () => clearInterval(interval);
+        }
+    }, [params.id, socket, isConnected]);
 
     if (!order) return <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center">Loading...</div>;
 
@@ -116,6 +148,76 @@ export default function OrderSuccess() {
                             )}
                         </div>
                     </div>
+                </div>
+
+                {/* Real-time Order Status */}
+                <div className="mt-6 bg-slate-800 p-6 rounded-xl border border-slate-700">
+                    <h2 className="text-xl font-bold mb-4">📍 Order Status & Tracking</h2>
+                    
+                    {/* Status Timeline */}
+                    <div className="space-y-3 mb-6">
+                        <div className={`flex items-center gap-3 p-3 rounded ${order.status !== 'PENDING_PAYMENT' ? 'bg-emerald-900/20 border border-emerald-600' : 'bg-slate-900'}`}>
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${order.status !== 'PENDING_PAYMENT' ? 'bg-emerald-600' : 'bg-slate-700'}`}>
+                                {order.status !== 'PENDING_PAYMENT' ? '✓' : '💳'}
+                            </div>
+                            <div>
+                                <p className="font-bold">Payment</p>
+                                <p className="text-sm text-slate-400">
+                                    {order.status !== 'PENDING_PAYMENT' ? 'Paid ✓' : 'Waiting for buyer payment'}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className={`flex items-center gap-3 p-3 rounded ${order.status === 'IN_TRANSIT' || order.status === 'DELIVERED' ? 'bg-purple-900/20 border border-purple-600' : 'bg-slate-900'}`}>
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${order.status === 'IN_TRANSIT' || order.status === 'DELIVERED' ? 'bg-purple-600' : 'bg-slate-700'}`}>
+                                {order.status === 'IN_TRANSIT' || order.status === 'DELIVERED' ? '✓' : '🚚'}
+                            </div>
+                            <div>
+                                <p className="font-bold">In Transit</p>
+                                <p className="text-sm text-slate-400">
+                                    {order.status === 'IN_TRANSIT' ? '🔄 Rider is delivering...' : 
+                                     order.status === 'DELIVERED' ? 'Delivered ✓' : 'Waiting for pickup'}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className={`flex items-center gap-3 p-3 rounded ${order.status === 'DELIVERED' ? 'bg-emerald-900/20 border border-emerald-600' : 'bg-slate-900'}`}>
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${order.status === 'DELIVERED' ? 'bg-emerald-600' : 'bg-slate-700'}`}>
+                                {order.status === 'DELIVERED' ? '🎉' : '📦'}
+                            </div>
+                            <div>
+                                <p className="font-bold">Delivered</p>
+                                <p className="text-sm text-slate-400">
+                                    {order.status === 'DELIVERED' ? 'Completed! Buyer confirmed delivery' : 'Not yet delivered'}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Rider Location */}
+                    {(order.status === 'IN_TRANSIT' || order.status === 'PAID') && (
+                        <div className="bg-blue-900/20 border border-blue-600 rounded-lg p-4">
+                            <h3 className="font-bold mb-2">🚗 Rider Location (Demo)</h3>
+                            <p className="text-sm text-slate-300 mb-3">
+                                {order.status === 'IN_TRANSIT' ? 
+                                    'Rider is en route to delivery address...' : 
+                                    'Waiting for rider to start delivery'}
+                            </p>
+                            {/* Mock map - replace with Google Maps API */}
+                            <div className="bg-slate-900 rounded p-4 text-center text-sm text-slate-500">
+                                <p>📍 Mock Location: En route</p>
+                                <p className="text-xs mt-2">
+                                    For production: Integrate Google Maps API with real-time rider location tracking
+                                </p>
+                                <button 
+                                    onClick={() => window.open(`https://www.google.com/maps/search/${order.deliveryAddress}`, '_blank')}
+                                    className="mt-3 px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded text-white font-bold transition"
+                                >
+                                    🗺️ View Delivery Location
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Order Details */}
