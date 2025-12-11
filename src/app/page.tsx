@@ -28,12 +28,12 @@ export default function HomePage() {
                                 🏍️ Register as Rider
                             </a>
                         </div>
-                        <div className="flex flex-col sm:flex-row gap-4 justify-center mt-4">
+                        <div className="flex justify-center mt-4">
                             <a
-                                href="/seller/dashboard"
-                                className="px-6 py-3 bg-slate-800 hover:bg-slate-700 border border-emerald-600 rounded-lg font-bold transition text-sm"
+                                href="/signin"
+                                className="px-8 py-3 bg-blue-600 hover:bg-blue-500 rounded-lg font-bold transition"
                             >
-                                Seller Dashboard
+                                🔑 Sign In
                             </a>
                         </div>
                     </div>

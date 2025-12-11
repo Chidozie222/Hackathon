@@ -10,6 +10,7 @@ export interface User {
     name: string;
     email: string;
     phone: string;
+    password: string;
     brandName?: string;
     website?: string;
     vehicleType?: string;
@@ -35,6 +36,7 @@ export interface Order {
     riderType: 'PERSONAL' | 'PLATFORM';
     riderId?: string;
     riderAccessToken?: string;
+    acceptedAt?: number;
     qrCode: string;
     status: 'PENDING_PAYMENT' | 'PAID' | 'PICKED_UP' | 'IN_TRANSIT' | 'DELIVERED' | 'DISPUTED' | 'COMPLETED';
     buyerLink: string;

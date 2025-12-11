@@ -88,6 +88,11 @@ export default function RiderTempDashboard() {
         setScanAction(null);
     };
 
+    const openNavigation = (address: string) => {
+        const encodedAddress = encodeURIComponent(address);
+        window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodedAddress}`, '_blank');
+    };
+
     const handleScan = async (scannedData: string, action: 'pickup' | 'start-delivery') => {
         try {
             const response = await fetch('/api/orders/rider-action', {
@@ -164,14 +169,32 @@ export default function RiderTempDashboard() {
                                 <span className="text-slate-400">Status:</span>
                                 <span className="font-bold text-purple-400">{order.status}</span>
                             </div>
-                            <div className="mt-4">
-                                <span className="text-slate-400 block mb-1">Pickup Address:</span>
-                                <p className="bg-slate-900 p-2 rounded text-xs">{order.pickupAddress}</p>
-                            </div>
-                            <div className="mt-2">
-                                <span className="text-slate-400 block mb-1">Delivery Address:</span>
-                                <p className="bg-slate-900 p-2 rounded text-xs">{order.deliveryAddress}</p>
-                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Navigation Section */}
+                {order && (
+                    <div className="grid md:grid-cols-2 gap-4 mb-6">
+                        <div className="bg-slate-800 p-6 rounded-xl border border-blue-600">
+                            <h3 className="text-lg font-bold mb-2">📍 Pickup Location</h3>
+                            <p className="text-slate-300 text-sm mb-4 bg-slate-900 p-2 rounded">{order.pickupAddress}</p>
+                            <button
+                                onClick={() => openNavigation(order.pickupAddress)}
+                                className="w-full py-3 bg-blue-600 hover:bg-blue-500 rounded-lg font-bold transition"
+                            >
+                                🗺️ Navigate to Pickup
+                            </button>
+                        </div>
+                        <div className="bg-slate-800 p-6 rounded-xl border border-emerald-600">
+                            <h3 className="text-lg font-bold mb-2">📍 Delivery Location</h3>
+                            <p className="text-slate-300 text-sm mb-4 bg-slate-900 p-2 rounded">{order.deliveryAddress}</p>
+                            <button
+                                onClick={() => openNavigation(order.deliveryAddress)}
+                                className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 rounded-lg font-bold transition"
+                            >
+                                🗺️ Navigate to Delivery
+                            </button>
                         </div>
                     </div>
                 )}

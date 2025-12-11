@@ -8,6 +8,7 @@ export default function SellerRegister() {
         name: '',
         email: '',
         phone: '',
+        password: '',
         brandName: '',
         website: ''
     });
@@ -82,6 +83,19 @@ export default function SellerRegister() {
                             onChange={(e) => setFormData({...formData, phone: e.target.value})}
                             className="w-full p-3 rounded bg-slate-900 border border-slate-600 focus:border-emerald-500 outline-none"
                             placeholder="+234 800 000 0000"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm text-slate-400 mb-2">Password *</label>
+                        <input
+                            required
+                            type="password"
+                            value={formData.password}
+                            onChange={(e) => setFormData({...formData, password: e.target.value})}
+                            className="w-full p-3 rounded bg-slate-900 border border-slate-600 focus:border-emerald-500 outline-none"
+                            placeholder="••••••••"
+                            minLength={6}
                         />
                     </div>
 

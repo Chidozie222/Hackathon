@@ -8,21 +8,73 @@ export default function RiderRegister() {
         name: '',
         email: '',
         phone: '',
+        password: '',
         vehicleType: '',
         licensePlate: '',
         nin: ''
     });
     const [isLoading, setIsLoading] = useState(false);
+    const [isVerifying, setIsVerifying] = useState(false);
+    const [isVerified, setIsVerified] = useState(false);
+    const [verificationError, setVerificationError] = useState('');
+
+    const handleVerify = async () => {
+        if (!formData.nin || !formData.name) {
+            setVerificationError('Please enter your name and NIN/BVN first');
+            return;
+        }
+
+        setIsVerifying(true);
+        setVerificationError('');
+
+        try {
+            const res = await fetch('/api/verify/identity', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    ninOrBvn: formData.nin,
+                    name: formData.name,
+                    type: 'RIDER'
+                })
+            });
+
+            const data = await res.json();
+            if (data.success && data.verified) {
+                setIsVerified(true);
+                setVerificationError('');
+            } else {
+                setVerificationError(data.error || 'Verification failed');
+                setIsVerified(false);
+            }
+        } catch (error) {
+            console.error(error);
+            setVerificationError('Network error. Please try again.');
+            setIsVerified(false);
+        } finally {
+            setIsVerifying(false);
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        
+        if (!isVerified) {
+            alert('Please verify your NIN/BVN before submitting');
+            return;
+        }
+
         setIsLoading(true);
 
         try {
             const res = await fetch('/api/auth/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ type: 'RIDER', ...formData })
+                body: JSON.stringify({ 
+                    type: 'RIDER', 
+                    ...formData,
+                    identityVerified: true,
+                    verifiedAt: Date.now()
+                })
             });
 
             const data = await res.json();
@@ -90,11 +142,26 @@ export default function RiderRegister() {
                     </div>
 
                     <div>
+                        <label className="block text-sm text-slate-400 mb-2">Password *</label>
+                        <input
+                            required
+                            type="password"
+                            value={formData.password}
+                            onChange={(e) => setFormData({...formData, password: e.target.value})}
+                            className="w-full p-3 rounded bg-slate-900 border border-slate-600 focus:border-purple-500 outline-none"
+                            placeholder="••••••••"
+                            minLength={6}
+                        />
+                    </div>
+
+                    <div>
                         <label className="block text-sm text-slate-400 mb-2">Vehicle Type *</label>
                         <select
                             required
                             value={formData.vehicleType}
-                            onChange={(e) => setFormData({...formData, vehicleType: e.target.value})}
+                            onChange={(e) => {
+                                setFormData({...formData, vehicleType: e.target.value, licensePlate: e.target.value === 'Bicycle' ? '' : formData.licensePlate});
+                            }}
                             className="w-full p-3 rounded bg-slate-900 border border-slate-600 focus:border-purple-500 outline-none"
                         >
                             <option value="">Select vehicle type</option>
@@ -105,30 +172,59 @@ export default function RiderRegister() {
                         </select>
                     </div>
 
-                    <div>
-                        <label className="block text-sm text-slate-400 mb-2">License Plate Number *</label>
-                        <input
-                            required
-                            type="text"
-                            value={formData.licensePlate}
-                            onChange={(e) => setFormData({...formData, licensePlate: e.target.value.toUpperCase()})}
-                            className="w-full p-3 rounded bg-slate-900 border border-slate-600 focus:border-purple-500 outline-none uppercase"
-                            placeholder="ABC-123-XY"
-                        />
-                    </div>
+                    {formData.vehicleType && formData.vehicleType !== 'Bicycle' && (
+                        <div>
+                            <label className="block text-sm text-slate-400 mb-2">License Plate Number *</label>
+                            <input
+                                required
+                                type="text"
+                                value={formData.licensePlate}
+                                onChange={(e) => setFormData({...formData, licensePlate: e.target.value.toUpperCase()})}
+                                className="w-full p-3 rounded bg-slate-900 border border-slate-600 focus:border-purple-500 outline-none uppercase"
+                                placeholder="ABC-123-XY"
+                            />
+                        </div>
+                    )}
 
                     <div>
                         <label className="block text-sm text-slate-400 mb-2">NIN/BVN *</label>
-                        <input
-                            required
-                            type="text"
-                            value={formData.nin}
-                            onChange={(e) => setFormData({...formData, nin: e.target.value})}
-                            className="w-full p-3 rounded bg-slate-900 border border-slate-600 focus:border-purple-500 outline-none"
-                            placeholder="12345678901"
-                            maxLength={11}
-                        />
+                        <div className="flex gap-2">
+                            <input
+                                required
+                                type="text"
+                                value={formData.nin}
+                                onChange={(e) => {
+                                    setFormData({...formData, nin: e.target.value});
+                                    setIsVerified(false);
+                                    setVerificationError('');
+                                }}
+                                className="flex-1 p-3 rounded bg-slate-900 border border-slate-600 focus:border-purple-500 outline-none"
+                                placeholder="12345678901"
+                                maxLength={11}
+                                disabled={isVerified}
+                            />
+                            <button
+                                type="button"
+                                onClick={handleVerify}
+                                disabled={isVerifying || isVerified || !formData.nin || !formData.name}
+                                className="px-6 py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed rounded font-bold transition whitespace-nowrap"
+                            >
+                                {isVerifying ? 'Verifying...' : isVerified ? '✓ Verified' : 'Verify'}
+                            </button>
+                        </div>
                         <p className="text-xs text-slate-500 mt-1">National Identity Number or Bank Verification Number</p>
+                        
+                        {isVerified && (
+                            <div className="mt-2 p-3 bg-green-900/30 border border-green-500 rounded text-sm text-green-300">
+                                ✓ Identity verified successfully
+                            </div>
+                        )}
+                        
+                        {verificationError && (
+                            <div className="mt-2 p-3 bg-red-900/30 border border-red-500 rounded text-sm text-red-300">
+                                ⚠️ {verificationError}
+                            </div>
+                        )}
                     </div>
 
                     <div className="bg-purple-900/20 border border-purple-500 rounded p-4 text-sm">
