@@ -43,14 +43,72 @@ export default function EscrowList() {
       </div>
       
       <div className="grid gap-4">
-        {(!escrows || (escrows as any[]).length === 0) ? (
-            <p className="text-slate-500 italic">No escrows found.</p>
-        ) : (
-            (escrows as any[]).map((escrow: any, idx: number) => (
-                <EscrowDetail key={escrow.escrowAddress} info={escrow} />
-            ))
-        )}
+        <h3 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600">My Managed Payments</h3>
+        <ManagedEscrowList />
       </div>
     </div>
   );
+}
+
+function ManagedEscrowList() {
+    const [managed, setManaged] = useState<any[]>([]);
+    
+    const fetchManaged = async () => {
+        const res = await fetch('/api/escrow');
+        const data = await res.json();
+        if (data.escrows) setManaged(data.escrows);
+    };
+
+    useEffect(() => {
+        fetchManaged();
+        const interval = setInterval(fetchManaged, 5000);
+        return () => clearInterval(interval);
+    }, []);
+
+    const handleApprove = async (id: string, escrowAddress: string) => {
+        if(!escrowAddress) return alert("Escrow address not ready yet");
+        
+        try {
+            const res = await fetch('/api/escrow', {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ id, escrowAddress })
+            });
+            const data = await res.json();
+            if(data.success) {
+                alert("Approved! Funds released.");
+                fetchManaged();
+            } else {
+                alert("Error: " + data.error);
+            }
+        } catch(e) { console.error(e); }
+    };
+
+    if (managed.length === 0) return <p className="text-slate-500 italic">No managed payments yet.</p>;
+
+    return (
+        <div className="space-y-4">
+            {managed.map(m => (
+                <div key={m.id} className="p-4 bg-slate-900 rounded border border-purple-500/30 flex justify-between items-center">
+                    <div>
+                        <p className="font-bold text-lg text-purple-300">Amount: ₦{m.amount}</p>
+                        <p className="text-sm text-slate-400">Seller: {m.sellerEmail}</p>
+                        <p className="text-xs text-slate-500">Status: <span className={m.status === 'APPROVED' ? 'text-green-400' : 'text-orange-400'}>{m.status}</span></p>
+                        {m.txHash && <p className="text-xs text-slate-600 font-mono">Tx: {m.txHash.slice(0,10)}...</p>}
+                    </div>
+                    <div>
+                        {m.status === 'PENDING' && (
+                            <button 
+                                onClick={() => handleApprove(m.id, m.escrowAddress)}
+                                className="px-3 py-1 bg-purple-600 hover:bg-purple-500 rounded text-sm font-bold transition"
+                            >
+                                Release Funds
+                            </button>
+                        )}
+                        {m.status === 'APPROVED' && <span className="text-green-500 font-bold px-2">✓ Paid</span>}
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
 }

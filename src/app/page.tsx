@@ -1,11 +1,8 @@
 "use client";
-import { WagmiProvider, useConnect, useAccount, useDisconnect } from 'wagmi';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useConnect, useAccount, useDisconnect } from 'wagmi';
 import { config } from '../config';
 import EscrowCreate from '../components/EscrowCreate';
 import EscrowList from '../components/EscrowList';
-
-const queryClient = new QueryClient();
 
 function App() {
   const { address, isConnected } = useAccount();
@@ -28,8 +25,16 @@ function App() {
                 connectors.map((connector) => (
                     <button 
                         key={connector.uid} 
-                        onClick={() => connect({ connector })}
-                        className="px-4 py-2 bg-slate-100 text-slate-900 rounded font-bold hover:bg-slate-200 transition"
+                        onClick={() => {
+                            console.log("Attempting to connect with", connector.name);
+                            connect({ connector }, {
+                                onError: (err) => {
+                                    console.error("Connection failed", err);
+                                    alert("Connection Failed: " + err.message);
+                                }
+                            });
+                        }}
+                        className="px-4 py-2 bg-slate-100 text-slate-900 rounded font-bold hover:bg-slate-200 transition cursor-pointer"
                     >
                         Connect {connector.name}
                     </button>
@@ -55,11 +60,5 @@ function App() {
 }
 
 export default function Page() {
-  return (
-    <WagmiProvider config={config}>
-      <QueryClientProvider client={queryClient}>
-        <App />
-      </QueryClientProvider>
-    </WagmiProvider>
-  );
+  return <App />;
 }
