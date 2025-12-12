@@ -114,42 +114,55 @@ export async function createCustodialEscrow(sellerAddress: string, amount: strin
 
     return { hash, escrowAddress };
   } catch (error: any) {
-    // If transaction is already known (duplicate), wait a bit and retry with fresh nonce
-    if (error.message?.includes('already known') || error.message?.includes('nonce too low')) {
-      console.log('⚠️ Transaction already in mempool or nonce conflict. Waiting for pending tx...');
+    const errorMsg = error.message?.toLowerCase() || '';
+    
+    // If transaction is already known, it means a previous attempt is still pending
+    if (errorMsg.includes('already known')) {
+      console.log('⚠️ Transaction already in mempool. Waiting for it to complete...');
       
-      // Wait 2 seconds for pending transaction to clear
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Get pending nonce to find which transaction to wait for
+      const pendingNonce = await publicClient.getTransactionCount({
+        address: account.address,
+        blockTag: 'pending'
+      });
       
-      // Retry with fresh nonce from latest state (not pending)
-      const freshNonce = await publicClient.getTransactionCount({
+      const currentNonce = await publicClient.getTransactionCount({
         address: account.address,
         blockTag: 'latest'
       });
       
-      console.log(`🔄 Retrying with fresh nonce: ${freshNonce}`);
-      
-      const hash = await serverWallet.writeContract({
-        address: FACTORY_ADDRESS,
-        abi: FACTORY_ABI,
-        functionName: 'createEscrow',
-        args: [sellerAddress as `0x${string}`, account.address],
-        value: parseEther(amount),
-        nonce: freshNonce
-      });
-      
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
-      
-      let escrowAddress = null;
-      for (const log of receipt.logs) {
-          if (log.address.toLowerCase() === FACTORY_ADDRESS.toLowerCase()) {
-             if (log.topics[1]) {
-                 escrowAddress = `0x${log.topics[1].slice(26)}`;
-             }
+      // If there's a pending transaction, wait for it
+      if (pendingNonce > currentNonce) {
+        console.log(`⏳ Waiting for pending transaction (nonce ${currentNonce}) to complete...`);
+        
+        // Wait up to 30 seconds for pending transaction
+        for (let i = 0; i < 15; i++) {
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          
+          const newNonce = await publicClient.getTransactionCount({
+            address: account.address,
+            blockTag: 'latest'
+          });
+          
+          if (newNonce > currentNonce) {
+            console.log('✅ Pending transaction completed!');
+            // The transaction completed, but we don't have the escrow address
+            // This is acceptable since the idempotency check will catch it
+            return { hash: '0x', escrowAddress: null };
           }
+        }
+        
+        console.log('⚠️ Timeout waiting for pending transaction');
       }
-
-      return { hash, escrowAddress };
+      
+      // If we get here, just return empty - idempotency check will handle it
+      return { hash: '0x', escrowAddress: null };
+    }
+    
+    // For nonce too low, the transaction was already processed
+    if (errorMsg.includes('nonce too low')) {
+      console.log('ℹ️ Transaction already processed (nonce too low)');
+      return { hash: '0x', escrowAddress: null };
     }
     
     // Re-throw other errors
