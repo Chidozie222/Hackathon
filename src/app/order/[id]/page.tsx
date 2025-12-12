@@ -11,19 +11,21 @@ export default function OrderView() {
     const [paying, setPaying] = useState(false);
 
     useEffect(() => {
-        fetch(`/api/orders/${params.id}`)
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    setOrder(data.order);
-                    // Auto-redirect to tracking if already paid
-                    if (data.order.status !== 'PENDING_PAYMENT') {
-                        router.push(`/order/${params.id}/track`);
+        if (params?.id) {
+            fetch(`/api/orders/${params.id}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        setOrder(data.order);
+                        // Auto-redirect to tracking if already paid
+                        if (data.order.status !== 'PENDING_PAYMENT') {
+                            router.push(`/order/${params.id}/track`);
+                        }
                     }
-                }
-                setLoading(false);
-            });
-    }, [params.id, router]);
+                    setLoading(false);
+                });
+        }
+    }, [params?.id, router]);
 
     const handlePay = async () => {
         setPaying(true);
