@@ -21,7 +21,7 @@ export default function TrackOrder() {
 
     useEffect(() => {
         const fetchOrder = () => {
-            fetch(`/api/orders/${params.id}`)
+            fetch(`/api/orders/${params?.id}`)
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
@@ -36,7 +36,7 @@ export default function TrackOrder() {
         // Set up Socket.io real-time updates
         if (isConnected && socket) {
             // Join order-specific room
-            joinOrderRoom(params.id as string);
+            joinOrderRoom(params?.id as string);
 
             // Listen for real-time updates
             socket.on('order-updated', (updatedOrder: any) => {
@@ -47,14 +47,14 @@ export default function TrackOrder() {
             return () => {
                 // Cleanup
                 socket.off('order-updated');
-                leaveOrderRoom(params.id as string);
+                leaveOrderRoom(params?.id as string);
             };
         } else {
             // Fallback to polling if Socket.io not connected
             const interval = setInterval(fetchOrder, 5000);
             return () => clearInterval(interval);
         }
-    }, [params.id, socket, isConnected]);
+    }, [params?.id, socket, isConnected]);
 
     const startScanner = async () => {
         setScanning(true);
@@ -115,13 +115,13 @@ export default function TrackOrder() {
 
     const handleScan = async (scannedData: string) => {
         try {
-            console.log('Processing scan:', scannedData, 'Expected:', params.id);
+            console.log('Processing scan:', scannedData, 'Expected:', params?.id);
             
             const response = await fetch('/api/orders/confirm-delivery', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    orderId: params.id,
+                    orderId: params?.id,
                     scannedData: scannedData
                 })
             });
@@ -133,7 +133,7 @@ export default function TrackOrder() {
                 setScanSuccess(true);
                 setScanError('');
                 // Refresh order data
-                const orderResponse = await fetch(`/api/orders/${params.id}`);
+                const orderResponse = await fetch(`/api/orders/${params?.id}`);
                 const orderData = await orderResponse.json();
                 if (orderData.success) {
                     setOrder(orderData.order);
@@ -167,7 +167,7 @@ export default function TrackOrder() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    orderId: params.id,
+                    orderId: params?.id,
                     reason: cancelReason
                 })
             });
@@ -178,7 +178,7 @@ export default function TrackOrder() {
                 const analyzeRes = await fetch('/api/dispute/analyze', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ orderId: params.id })
+                    body: JSON.stringify({ orderId: params?.id })
                 });
 
                 const analyzeData = await analyzeRes.json();
@@ -186,7 +186,7 @@ export default function TrackOrder() {
                     setShowCancelModal(false);
                     alert(`Order cancelled. AI Decision: ${analyzeData.decision === 'REFUND_BUYER' ? 'You will be refunded' : 'Seller will be paid'}.\n\nReason: ${analyzeData.explanation}`);
                     // Refresh order
-                    fetch(`/api/orders/${params.id}`)
+                    fetch(`/api/orders/${params?.id}`)
                         .then(res => res.json())
                         .then(data => {
                             if (data.success) {

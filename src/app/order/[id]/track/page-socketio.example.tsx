@@ -10,7 +10,7 @@ export default function TrackOrder() {
 
     useEffect(() => {
         const fetchOrder = () => {
-            fetch(`/api/orders/${params.id}`)
+            fetch(`/api/orders/${params?.id}`)
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
@@ -24,7 +24,7 @@ export default function TrackOrder() {
 
         // Join order room for real-time updates
         if (isConnected && socket) {
-            joinOrderRoom(params.id as string);
+            joinOrderRoom(params?.id as string);
 
             // Listen for order updates
             socket.on('order-updated', (updatedOrder: any) => {
@@ -35,10 +35,10 @@ export default function TrackOrder() {
             return () => {
                 // Cleanup
                 socket.off('order-updated');
-                leaveOrderRoom(params.id as string);
+                leaveOrderRoom(params?.id as string);
             };
         }
-    }, [params.id, socket, isConnected]);
+    }, [params?.id, socket, isConnected]);
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-100 p-8">

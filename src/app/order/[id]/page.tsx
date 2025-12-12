@@ -12,14 +12,14 @@ export default function OrderView() {
 
     useEffect(() => {
         if (params?.id) {
-            fetch(`/api/orders/${params.id}`)
+            fetch(`/api/orders/${params?.id}`)
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
                         setOrder(data.order);
                         // Auto-redirect to tracking if already paid
                         if (data.order.status !== 'PENDING_PAYMENT') {
-                            router.push(`/order/${params.id}/track`);
+                            router.push(`/order/${params?.id}/track`);
                         }
                     }
                     setLoading(false);
