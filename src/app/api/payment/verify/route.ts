@@ -21,13 +21,13 @@ export async function GET(req: NextRequest) {
             if (orderId) {
                 // Get order details
                 const { getOrderById, getUserById } = await import('@/lib/database');
-                const order = getOrderById(orderId);
+                const order = await getOrderById(orderId);
                 
                 if (!order) {
                     return NextResponse.redirect(new URL('/?payment=failed&reason=order_not_found', req.url));
                 }
 
-                const seller = getUserById(order.sellerId);
+                const seller = await getUserById(order.sellerId);
                 if (!seller?.walletAddress) {
                     throw new Error("Seller wallet address not found");
                 }
@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
                 
                 // Update order status to PAID and save blockchain details
                 const { updateOrder } = await import('@/lib/database');
-                updateOrder(orderId, {
+                await updateOrder(orderId, {
                     status: 'PAID',
                     paymentReference: reference,
                     escrowAddress: escrowAddress || undefined

@@ -2,6 +2,7 @@ import { Server as NetServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import { NextApiRequest } from 'next';
 import { NextApiResponseServerIO } from '@/types/socket';
+import { setIO } from '@/lib/socketBroadcast';
 
 export const config = {
     api: {
@@ -24,6 +25,7 @@ const ioHandler = (req: NextApiRequest, res: NextApiResponseServerIO) => {
         });
 
         res.socket.server.io = io;
+        setIO(io); // Enable global broadcast
 
         io.on('connection', (socket) => {
             console.log('✅ Client connected:', socket.id);
@@ -66,6 +68,9 @@ const ioHandler = (req: NextApiRequest, res: NextApiResponseServerIO) => {
         console.log('✅ Socket.io server initialized');
     } else {
         console.log('♻️ Socket.io server already running');
+        // Ensure global broadcast instance is set even if server is already running
+        // This fixes the issue where module reloads in dev mode clear the global reference
+        setIO(res.socket.server.io); 
     }
 
     res.end();

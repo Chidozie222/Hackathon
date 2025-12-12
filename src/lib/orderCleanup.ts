@@ -48,8 +48,8 @@ export function sanitizeDeliveredOrder(order: any): any {
         ...order,
         // Clear product photo URL (file already deleted)
         productPhoto: '',
-        // Invalidate rider access token
-        riderAccessToken: order.riderType === 'PERSONAL' ? 'EXPIRED' : order.riderAccessToken,
+        // Invalidate rider access token for all types after delivery
+        riderAccessToken: 'EXPIRED',
         // Keep QR as base64 for records (or clear with empty string)
         // qrCode: '', // Uncomment to remove QR code too
         // Mark as sanitized

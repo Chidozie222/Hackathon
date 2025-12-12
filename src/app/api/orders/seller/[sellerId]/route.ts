@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAllOrders } from '@/lib/database';
+import { getOrdersBySellerId } from '@/lib/database';
 
 export async function GET(
     req: NextRequest,
-    { params }: { params: { sellerId: string } }
+    context: { params: Promise<{ sellerId: string }> }
 ) {
     try {
-        const sellerId = params.sellerId;
+        const { sellerId } = await context.params;
         
         if (!sellerId) {
             return NextResponse.json({ 
@@ -16,8 +16,7 @@ export async function GET(
         }
         
         // Get all orders for this seller
-        const allOrders = getAllOrders();
-        const sellerOrders = allOrders.filter(order => order.sellerId === sellerId);
+        const sellerOrders = await getOrdersBySellerId(sellerId);
         
         return NextResponse.json({ 
             success: true,

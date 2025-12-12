@@ -2,66 +2,51 @@
 import { useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 
-let socket: Socket | null = null;
+let socket: Socket | undefined;
 
 export const useSocket = () => {
     const [isConnected, setIsConnected] = useState(false);
 
     useEffect(() => {
-        // Initialize socket connection
-        socketInitializer();
+        const initSocket = async () => {
+            if (!socket) {
+                await fetch('/api/socket');
+                socket = io({
+                    path: '/api/socket',
+                    addTrailingSlash: false,
+                    transports: ['polling', 'websocket'], // Force transport options
+                });
 
-        return () => {
-            if (socket) {
-                socket.disconnect();
+                socket.on('connect', () => {
+                    console.log('✅ Socket connected:', socket?.id);
+                    setIsConnected(true);
+                });
+
+                socket.on('disconnect', () => {
+                    console.log('❌ Socket disconnected');
+                    setIsConnected(false);
+                });
+
+                socket.on('connect_error', (err) => {
+                    console.error('Socket connection error:', err);
+                });
+            } else {
+                if (socket.connected) {
+                    setIsConnected(true);
+                }
             }
+        };
+
+        initSocket();
+        
+        // Cleanup listener only, do not disconnect global socket on component unmount
+        // to persist connection across page navigations
+        return () => {
+            // Optional: remove specific listeners if needed, but keep connection
         };
     }, []);
 
-    const socketInitializer = async () => {
-        // Only run on client side
-        if (typeof window === 'undefined') return;
-
-        // Reuse existing connection if available
-        if (socket?.connected) {
-            setIsConnected(true);
-            return socket;
-        }
-
-        // Initialize Socket.io
-        await fetch('/api/socket');
-
-        socket = io({
-            path: '/api/socket',
-            addTrailingSlash: false
-        });
-
-        socket.on('connect', () => {
-            console.log('✅ Socket connected:', socket?.id);
-            setIsConnected(true);
-        });
-
-        socket.on('disconnect', () => {
-            console.log('❌ Socket disconnected');
-            setIsConnected(false);
-        });
-
-        socket.on('connect_error', (error) => {
-            console.error('Socket connection error:', error);
-            setIsConnected(false);
-        });
-
-        return socket;
-    };
-
     return { socket, isConnected };
-};
-
-// Helper functions for emitting events
-export const emitOrderUpdate = (orderId: string, order: any) => {
-    if (socket && socket.connected) {
-        socket.emit('order-updated', { orderId, order });
-    }
 };
 
 export const joinOrderRoom = (orderId: string) => {

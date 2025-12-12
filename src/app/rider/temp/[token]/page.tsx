@@ -1,10 +1,12 @@
 "use client";
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
 
 export default function RiderTempDashboard() {
     const params = useParams();
+    const searchParams = useSearchParams();
     const [order, setOrder] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
     const [scanning, setScanning] = useState(false);
     const [scanAction, setScanAction] = useState<'pickup' | 'start-delivery' | null>(null);
     const [scanError, setScanError] = useState<string>('');
@@ -13,28 +15,32 @@ export default function RiderTempDashboard() {
     const scannerElementRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        // Fetch order associated with this rider token
-        // For now, we need to get the orderId from somewhere
-        // In a real app, the token would map to an order
-        // Let's check if there's an orderId in the URL params
         const fetchOrder = async () => {
-            // Try to get orderId from localStorage or query params
-            const urlParams = new URLSearchParams(window.location.search);
-            const orderId = urlParams.get('orderId');
+            const orderId = searchParams?.get('orderId');
             
             if (orderId) {
-                const response = await fetch(`/api/orders/${orderId}`);
-                const data = await response.json();
-                if (data.success) {
-                    setOrder(data.order);
+                try {
+                    const response = await fetch(`/api/orders/${orderId}`);
+                    const data = await response.json();
+                    if (data.success) {
+                        setOrder(data.order);
+                    } else {
+                        console.error('Failed to load order:', data.error);
+                    }
+                } catch (e) {
+                    console.error('Fetch error:', e);
+                } finally {
+                    setLoading(false);
                 }
+            } else {
+                setLoading(false);
             }
         };
 
         fetchOrder();
-        const interval = setInterval(fetchOrder, 5000); // Poll every 5 seconds
+        const interval = setInterval(fetchOrder, 5000);
         return () => clearInterval(interval);
-    }, [params.token]);
+    }, [searchParams]);
 
     const startScanner = async (action: 'pickup' | 'start-delivery') => {
         setScanning(true);
@@ -99,7 +105,7 @@ export default function RiderTempDashboard() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    orderId: scannedData, // The QR code contains the order ID
+                    orderId: order.id, // Use the ID from the current page context
                     scannedData: scannedData,
                     action: action
                 })
@@ -133,8 +139,23 @@ export default function RiderTempDashboard() {
         };
     }, []);
 
+    if (loading) {
+        return <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center">Loading Order Details...</div>;
+    }
+
+    if (!order) {
+        return (
+            <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-8 text-center">
+                <div>
+                    <h1 className="text-2xl font-bold text-red-500 mb-2">Order Not Found</h1>
+                    <p className="text-slate-400">Could not load order details. Please check the link or try again.</p>
+                </div>
+            </div>
+        );
+    }
+
     // Check if access token is expired (after delivery)
-    if (order && (order.riderAccessToken === 'EXPIRED' || order.status === 'DELIVERED')) {
+    if (order.riderAccessToken === 'EXPIRED' || order.status === 'DELIVERED') {
         return (
             <div className="min-h-screen bg-slate-950 text-slate-100 p-8">
                 <div className="max-w-4xl mx-auto text-center">
@@ -169,7 +190,7 @@ export default function RiderTempDashboard() {
                     </p>
                     <div className="bg-slate-900 p-4 rounded">
                         <p className="text-sm text-slate-500">Access Token:</p>
-                        <p className="font-mono text-xs break-all">{params.token}</p>
+                        <p className="font-mono text-xs break-all">{params?.token || 'Unknown'}</p>
                     </div>
                 </div>
 

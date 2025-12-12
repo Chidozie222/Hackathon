@@ -122,6 +122,8 @@ export default function SellerRegister() {
                         />
                     </div>
 
+
+
                     <button
                         type="submit"
                         disabled={isLoading}

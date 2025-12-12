@@ -24,7 +24,9 @@ export async function POST(req: NextRequest) {
         }
         
         const orderId = uuidv4();
-        const buyerLink = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/order/${orderId}`;
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+        const buyerLink = `${baseUrl}/order/${orderId}`;
+        console.log('🔗 Generated Buyer Link:', buyerLink);
         
         // Generate QR code - contains order ID for verification
         const qrCode = await generateQRCode(orderId);
@@ -49,7 +51,7 @@ export async function POST(req: NextRequest) {
             createdAt: Date.now()
         };
         
-        addOrder(order);
+        await addOrder(order);
         
         console.log('✅ Order created:', orderId);
         

@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Get order details
-        const order = getOrderById(orderId);
+        const order = await getOrderById(orderId);
         
         if (!order) {
             return NextResponse.json({ success: false, error: "Order not found" }, { status: 404 });
@@ -39,13 +39,13 @@ export async function POST(req: NextRequest) {
             }
 
             // Update order status directly to IN_TRANSIT (rider has package and is delivering)
-            updateOrder(orderId, {
+            await updateOrder(orderId, {
                 status: 'IN_TRANSIT',
                 pickupTime: Date.now()
             });
 
             // Broadcast real-time update
-            const updatedOrder = getOrderById(orderId);
+            const updatedOrder = await getOrderById(orderId);
             if (updatedOrder) {
                 broadcastOrderUpdate(orderId, updatedOrder);
             }

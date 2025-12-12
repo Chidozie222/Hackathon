@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Get order details
-        const order = getOrderById(orderId);
+        const order = await getOrderById(orderId);
         
         if (!order) {
             return NextResponse.json({ success: false, error: "Order not found" }, { status: 404 });
@@ -37,13 +37,13 @@ export async function POST(req: NextRequest) {
         }
 
         // Update order status to DELIVERED
-        updateOrder(orderId, {
+        await updateOrder(orderId, {
             status: 'DELIVERED',
             deliveryTime: Date.now()
         });
 
         // Get updated order
-        const updatedOrder = getOrderById(orderId);
+        const updatedOrder = await getOrderById(orderId);
 
         // Broadcast real-time update to all clients watching this order
         if (updatedOrder) {
@@ -55,8 +55,11 @@ export async function POST(req: NextRequest) {
             await cleanupDeliveredOrder(order);
             
             // Sanitize order data
-            const sanitizedData = sanitizeDeliveredOrder(order);
-            updateOrder(orderId, sanitizedData);
+            // Sanitize order data - use updatedOrder to ensure we keep the DELIVERED status
+            // If updatedOrder is null (unlikely), fallback to order but force status
+            const sourceOrder = updatedOrder || { ...order, status: 'DELIVERED' };
+            const sanitizedData = sanitizeDeliveredOrder(sourceOrder);
+            await updateOrder(orderId, sanitizedData);
             
             console.log('🧹 Order data cleaned up and sanitized');
         } catch (cleanupError) {

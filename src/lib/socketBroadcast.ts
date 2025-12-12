@@ -4,14 +4,17 @@
 
 import { Server as SocketIOServer } from 'socket.io';
 
-let io: SocketIOServer | null = null;
-
-export function getIO(): SocketIOServer | null {
-    return io;
+// Use globalThis to persist io instance across module reloads in dev
+declare global {
+    var ioInstance: SocketIOServer | undefined;
 }
 
-export function setIO(ioInstance: SocketIOServer) {
-    io = ioInstance;
+export function getIO(): SocketIOServer | null {
+    return globalThis.ioInstance || null;
+}
+
+export function setIO(io: SocketIOServer) {
+    globalThis.ioInstance = io;
 }
 
 /**
@@ -19,6 +22,7 @@ export function setIO(ioInstance: SocketIOServer) {
  */
 export function broadcastOrderUpdate(orderId: string, order: any) {
     try {
+        const io = getIO();
         if (io) {
             io.to(`order-${orderId}`).emit('order-updated', order);
             console.log(`📡 Broadcast: order-${orderId} updated`);
@@ -35,6 +39,7 @@ export function broadcastOrderUpdate(orderId: string, order: any) {
  */
 export function broadcastNewJob(job: any) {
     try {
+        const io = getIO();
         if (io) {
             io.emit('new-job', job);
             console.log(`📡 Broadcast: new job available`);
@@ -49,6 +54,7 @@ export function broadcastNewJob(job: any) {
  */
 export function notifySellerOrderUpdate(sellerId: string, order: any) {
     try {
+        const io = getIO();
         if (io) {
             io.to(`seller-${sellerId}`).emit('seller-order-update', order);
             console.log(`📡 Notified seller-${sellerId}`);
@@ -63,6 +69,7 @@ export function notifySellerOrderUpdate(sellerId: string, order: any) {
  */
 export function notifyRiderJobUpdate(riderId: string, job: any) {
     try {
+        const io = getIO();
         if (io) {
             io.to(`rider-${riderId}`).emit('rider-job-update', job);
             console.log(`📡 Notified rider-${riderId}`);

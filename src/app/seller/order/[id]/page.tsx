@@ -5,13 +5,15 @@ import { useSocket, joinOrderRoom, leaveOrderRoom } from '@/lib/socket';
 
 export default function OrderSuccess() {
     const params = useParams();
+    const orderId = params?.id as string;
     const router = useRouter();
     const [order, setOrder] = useState<any>(null);
     const { socket, isConnected } = useSocket();
 
     useEffect(() => {
         const fetchOrder = () => {
-            fetch(`/api/orders/${params.id}`)
+            if (!orderId) return;
+            fetch(`/api/orders/${orderId}`)
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
@@ -24,8 +26,8 @@ export default function OrderSuccess() {
         fetchOrder();
 
         // Set up Socket.io real-time updates
-        if (isConnected && socket) {
-            joinOrderRoom(params.id as string);
+        if (isConnected && socket && orderId) {
+            joinOrderRoom(orderId);
 
             socket.on('order-updated', (updatedOrder: any) => {
                 console.log('📡 Seller: Real-time order update');
@@ -41,13 +43,13 @@ export default function OrderSuccess() {
             return () => {
                 socket.off('order-updated');
                 socket.off('rider-location-update');
-                leaveOrderRoom(params.id as string);
+                leaveOrderRoom(orderId);
             };
         } else {
             const interval = setInterval(fetchOrder, 5000);
             return () => clearInterval(interval);
         }
-    }, [params.id, socket, isConnected]);
+    }, [orderId, socket, isConnected]);
 
     if (!order) return <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center">Loading...</div>;
 
@@ -55,8 +57,16 @@ export default function OrderSuccess() {
     console.log('Rider type:', order.riderType);
     console.log('Rider access token:', order.riderAccessToken);
 
-    const buyerLink = `${window.location.origin}/order/${order.id}`;
-    const riderLink = order.riderAccessToken ? `${window.location.origin}/rider/temp/${order.riderAccessToken}` : null;
+    const getBaseUrl = () => {
+        if (typeof window !== 'undefined') {
+            return window.location.origin;
+        }
+        return '';
+    };
+
+    const baseUrl = getBaseUrl();
+    const buyerLink = order.buyerLink || `${baseUrl}/order/${order.id}`;
+    const riderLink = order.riderAccessToken ? `${baseUrl}/rider/temp/${order.riderAccessToken}?orderId=${order.id}` : null;
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-100 p-8">

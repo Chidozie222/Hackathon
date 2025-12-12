@@ -13,6 +13,7 @@ export interface IUser {
     vehicleType?: string;
     licensePlate?: string;
     nin?: string; // Encrypted
+    walletAddress?: string;
     identityVerified?: boolean;
     verifiedAt?: number;
     createdAt: number;
@@ -30,6 +31,7 @@ const UserSchema = new Schema<IUser>({
     vehicleType: String,
     licensePlate: String,
     nin: String, // Encrypted
+    walletAddress: String,
     identityVerified: Boolean,
     verifiedAt: Number,
     createdAt: { type: Number, required: true }
@@ -40,7 +42,7 @@ const UserSchema = new Schema<IUser>({
 
 // Create indexes
 UserSchema.index({ email: 1 });
-UserSchema.index({ id: 1 });
+// UserSchema.index({ id: 1 }); // Removed to prevent duplicate index warning
 UserSchema.index({ type: 1 });
 
 export const User: Model<IUser> = mongoose.models.User || mongoose.model<IUser>('User', UserSchema);

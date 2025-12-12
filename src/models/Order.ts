@@ -81,7 +81,7 @@ const OrderSchema = new Schema<IOrder>({
 });
 
 // Create indexes for efficient queries
-OrderSchema.index({ id: 1 });
+// OrderSchema.index({ id: 1 }); // Removed to prevent duplicate index warning
 OrderSchema.index({ sellerId: 1 });
 OrderSchema.index({ riderId: 1 });
 OrderSchema.index({ status: 1 });
