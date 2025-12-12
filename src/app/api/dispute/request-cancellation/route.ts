@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
             }, { status: 400 });
         }
         
-        const order = getOrderById(orderId);
+        const order = await getOrderById(orderId);
         
         if (!order) {
             return NextResponse.json({ 
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
         }
         
         // Store cancellation request
-        updateOrder(orderId, {
+        await updateOrder(orderId, {
             cancellationRequested: true,
             cancellationReason: reason,
             cancellationRequestedAt: Date.now(),
