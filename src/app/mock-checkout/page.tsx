@@ -7,9 +7,9 @@ export default function MockCheckout() {
     const router = useRouter();
     const [countdown, setCountdown] = useState(3);
 
-    const amount = searchParams.get('amount');
-    const reference = searchParams.get('reference');
-    const orderId = searchParams.get('orderId');
+    const amount = searchParams?.get('amount');
+    const reference = searchParams?.get('reference');
+    const orderId = searchParams?.get('orderId');
 
     useEffect(() => {
         const timer = setInterval(() => {
