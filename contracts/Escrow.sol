@@ -7,10 +7,14 @@ contract Escrow {
 	address public arbiter;
 	bool public isDeliveryConfirmed;
 	bool public isRefunded;
+	bool public isDisputed;
+	string public disputeReason;
+	uint256 public disputeTimestamp;
 
 	event Deposit(address indexed buyer, uint amount);
 	event DeliveryConfirmed(address indexed buyer, uint amount);
 	event Refunded(address indexed buyer, uint amount);
+	event DisputeRaised(address indexed buyer, string reason, uint256 timestamp);
 
 	constructor(address _buyer, address _seller, address _arbiter) payable {
 		buyer = _buyer;
@@ -28,6 +32,21 @@ contract Escrow {
 		require(sent, "Failed to send Ether");
 		
 		emit DeliveryConfirmed(buyer, address(this).balance);
+	}
+
+	function raiseDispute(string memory _reason) external {
+		require(msg.sender == buyer, "Only buyer can raise dispute");
+		require(!isDisputed, "Dispute already raised");
+		require(!isDeliveryConfirmed, "Cannot dispute after delivery confirmed");
+		require(!isRefunded, "Cannot dispute after refund");
+		require(bytes(_reason).length > 0, "Dispute reason cannot be empty");
+		require(bytes(_reason).length <= 1000, "Dispute reason too long");
+		
+		isDisputed = true;
+		disputeReason = _reason;
+		disputeTimestamp = block.timestamp;
+		
+		emit DisputeRaised(buyer, _reason, block.timestamp);
 	}
 
 	function refund() external {

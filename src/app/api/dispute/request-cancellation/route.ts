@@ -37,12 +37,27 @@ export async function POST(req: NextRequest) {
             }, { status: 400 });
         }
         
-        // Store cancellation request
+        // Store dispute on blockchain if escrow exists
+        let disputeTxHash: string | undefined;
+        if (order.escrowAddress) {
+            try {
+                const { raiseDisputeOnChain } = await import('@/lib/serverWallet');
+                console.log('📝 Storing dispute on blockchain...');
+                disputeTxHash = await raiseDisputeOnChain(order.escrowAddress, reason);
+                console.log('✅ Dispute stored on blockchain:', disputeTxHash);
+            } catch (blockchainError: any) {
+                console.error('⚠️ Blockchain storage failed, continuing with MongoDB only:', blockchainError.message);
+                // Continue with MongoDB storage even if blockchain fails
+            }
+        }
+        
+        // Store cancellation request in database
         await updateOrder(orderId, {
             cancellationRequested: true,
             cancellationReason: reason,
             cancellationRequestedAt: Date.now(),
-            status: 'DISPUTED'
+            status: 'DISPUTED',
+            disputeTxHash
         });
         
         console.log('🚫 Cancellation requested for order:', orderId);

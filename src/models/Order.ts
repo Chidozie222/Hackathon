@@ -25,6 +25,7 @@ export interface IOrder {
     cancellationRequested?: boolean;
     cancellationReason?: string;
     cancellationRequestedAt?: number;
+    disputeTxHash?: string;
     disputeResolution?: {
         aiDecision: 'REFUND_BUYER' | 'PAY_SELLER';
         aiExplanation: string;
@@ -65,6 +66,7 @@ const OrderSchema = new Schema<IOrder>({
     cancellationRequested: Boolean,
     cancellationReason: String,
     cancellationRequestedAt: Number,
+    disputeTxHash: String,
     disputeResolution: {
         aiDecision: { type: String, enum: ['REFUND_BUYER', 'PAY_SELLER'] },
         aiExplanation: String,

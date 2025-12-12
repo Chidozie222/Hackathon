@@ -27,6 +27,12 @@ export async function GET(req: NextRequest) {
                     return NextResponse.redirect(new URL('/?payment=failed&reason=order_not_found', req.url));
                 }
 
+                // IDEMPOTENCY CHECK: If order is already paid, redirect to tracking
+                if (order.status === 'PAID' && order.escrowAddress) {
+                    console.log(`ℹ️ Order ${orderId} already paid. Redirecting to tracking...`);
+                    return NextResponse.redirect(new URL(`/order/${orderId}/track`, req.url));
+                }
+
                 const seller = await getUserById(order.sellerId);
                 if (!seller?.walletAddress) {
                     throw new Error("Seller wallet address not found");
@@ -39,6 +45,8 @@ export async function GET(req: NextRequest) {
                 
                 // Create blockchain escrow with the converted amount
                 const { createCustodialEscrow } = await import('@/lib/serverWallet');
+                
+                console.log(`💳 Creating escrow for order ${orderId}...`);
                 const { hash: txHash, escrowAddress } = await createCustodialEscrow(
                     seller.walletAddress, // use actual wallet address
                     amountInETH    // amount in ETH
