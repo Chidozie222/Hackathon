@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getOrderById, updateOrder } from '@/lib/database';
+import { getOrderById, assignRiderToOrder, getActiveJobsByRiderId } from '@/lib/database';
 
 export async function POST(req: NextRequest) {
     try {
@@ -12,7 +12,17 @@ export async function POST(req: NextRequest) {
             }, { status: 400 });
         }
         
-        const order = getOrderById(orderId);
+        // 1. Check if rider already has an active job
+        const activeJobs = await getActiveJobsByRiderId(riderId);
+        if (activeJobs.length > 0) {
+            return NextResponse.json({ 
+                success: false, 
+                error: `You already have an active job (${activeJobs[0].itemName}). Please complete it first.` 
+            }, { status: 400 });
+        }
+
+        // 2. Initial Check (Read-only) to provide specific error messages
+        const order = await getOrderById(orderId);
         if (!order) {
             return NextResponse.json({ 
                 success: false, 
@@ -20,7 +30,6 @@ export async function POST(req: NextRequest) {
             }, { status: 404 });
         }
         
-        // Check if order is available for assignment
         if (order.status !== 'PAID') {
             return NextResponse.json({ 
                 success: false, 
@@ -28,26 +37,35 @@ export async function POST(req: NextRequest) {
             }, { status: 400 });
         }
         
-        // Check if already assigned to another rider
-        if (order.riderId && order.riderId !== riderId) {
+        if (order.riderId) {
             return NextResponse.json({ 
                 success: false, 
-                error: 'This job has already been accepted by another rider' 
+                error: order.riderId === riderId 
+                    ? 'You have already accepted this job' 
+                    : 'This job has already been accepted by another rider'
             }, { status: 400 });
         }
         
-        // Assign job to rider
-        updateOrder(orderId, {
-            riderId: riderId,
-            acceptedAt: Date.now()
-        });
+        // 3. Atomic Assignment
+        // Even if the check above passed, a race condition could occur here.
+        // assignRiderToOrder ensures only one request succeeds.
+        const updatedOrder = await assignRiderToOrder(orderId, riderId);
+
+        if (!updatedOrder) {
+            // If we are here, it means the order exists (checked above), but the atomic update failed.
+            // This implies someone else claimed it in the split second between the check and the update.
+            return NextResponse.json({ 
+                success: false, 
+                error: 'Job was just taken by another rider' 
+            }, { status: 409 }); // 409 Conflict
+        }
         
         console.log(`✅ Job ${orderId} accepted by rider ${riderId}`);
         
         return NextResponse.json({ 
             success: true,
             message: 'Job accepted successfully',
-            order: getOrderById(orderId)
+            order: updatedOrder
         });
         
     } catch (error: any) {

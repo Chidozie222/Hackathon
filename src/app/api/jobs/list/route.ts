@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAllOrders } from '@/lib/database';
+import { getAvailableJobs, getActiveJobsByRiderId, getCompletedJobsByRiderId } from '@/lib/database';
 
 export async function GET(req: NextRequest) {
     try {
@@ -13,24 +13,10 @@ export async function GET(req: NextRequest) {
             }, { status: 400 });
         }
         
-        const allOrders = getAllOrders();
-        
-        // Available jobs: PAID orders not yet assigned
-        const availableJobs = allOrders.filter(order => 
-            order.status === 'PAID' && !order.riderId
-        );
-        
-        // Active jobs: Jobs assigned to this rider that are not delivered
-        const activeJobs = allOrders.filter(order => 
-            order.riderId === riderId && 
-            (order.status === 'PAID' || order.status === 'IN_TRANSIT')
-        );
-        
-        // Completed jobs: Jobs this rider delivered
-        const completedJobs = allOrders.filter(order => 
-            order.riderId === riderId && 
-            order.status === 'DELIVERED'
-        );
+        // Fetch jobs using optimized database queries
+        const availableJobs = await getAvailableJobs();
+        const activeJobs = await getActiveJobsByRiderId(riderId);
+        const completedJobs = await getCompletedJobsByRiderId(riderId);
         
         return NextResponse.json({ 
             success: true,

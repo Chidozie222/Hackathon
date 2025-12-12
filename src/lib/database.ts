@@ -45,7 +45,14 @@ export async function addOrder(orderData: Omit<IOrder, '_id'>): Promise<IOrder> 
 
 export async function getOrderById(id: string): Promise<IOrder | null> {
     await connectDB();
-    const order = await OrderModel.findOne({ id }).lean();
+    // Try finding by custom 'id' first
+    let order = await OrderModel.findOne({ id }).lean();
+    
+    // If not found, and it looks like a MongoDB _id, try finding by _id
+    if (!order && id.match(/^[0-9a-fA-F]{24}$/)) {
+        order = await OrderModel.findById(id).lean();
+    }
+    
     return order as IOrder | null;
 }
 
@@ -57,7 +64,42 @@ export async function getAllOrders(): Promise<IOrder[]> {
 
 export async function updateOrder(id: string, updates: Partial<IOrder>): Promise<void> {
     await connectDB();
-    await OrderModel.updateOne({ id }, { $set: updates });
+    
+    // Try updating by custom 'id'
+    const result = await OrderModel.updateOne({ id }, { $set: updates });
+    
+    // If no document matched, and it looks like a MongoDB _id, try updating by _id
+    if (result.matchedCount === 0 && id.match(/^[0-9a-fA-F]{24}$/)) {
+        await OrderModel.findByIdAndUpdate(id, { $set: updates });
+    }
+}
+
+export async function assignRiderToOrder(orderId: string, riderId: string): Promise<IOrder | null> {
+    await connectDB();
+    
+    const updates = { 
+        riderId, 
+        acceptedAt: Date.now() 
+    };
+
+    // Atomic update: Only update if riderId does not exist (or is null)
+    // Try custom 'id' first
+    let order = await OrderModel.findOneAndUpdate(
+        { id: orderId, riderId: { $exists: false } },
+        { $set: updates },
+        { new: true }
+    ).lean();
+
+    // Fallback to _id
+    if (!order && orderId.match(/^[0-9a-fA-F]{24}$/)) {
+        order = await OrderModel.findOneAndUpdate(
+            { _id: orderId, riderId: { $exists: false } },
+            { $set: updates },
+            { new: true }
+        ).lean();
+    }
+
+    return order as IOrder | null;
 }
 
 export async function getOrdersBySellerId(sellerId: string): Promise<IOrder[]> {

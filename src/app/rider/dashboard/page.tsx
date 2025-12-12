@@ -17,7 +17,7 @@ export default function RiderDashboard() {
         // Check if user is logged in
         const userStr = localStorage.getItem('user');
         if (!userStr) {
-            router.push('/rider/register');
+            router.push('/signin');
             return;
         }
 
@@ -82,23 +82,34 @@ export default function RiderDashboard() {
     };
 
     const handleAccept = async (orderId: string) => {
+        if (!user || (!user.id && !user._id)) {
+            alert('User profile error. Please sign out and sign in again.');
+            return;
+        }
+        
+        const riderId = user.id || user._id;
+
+        console.log('Attempting to accept job:', { orderId, riderId });
+
         setAccepting(orderId);
         try {
             const res = await fetch('/api/jobs/accept', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ orderId, riderId: user.id })
+                body: JSON.stringify({ orderId, riderId })
             });
 
             const data = await res.json();
             if (data.success) {
-                await fetchJobs(user.id);
-                alert('Job accepted!');
+                await fetchJobs(riderId);
+                alert('Job accepted successfully!');
             } else {
+                console.error('Accept job failed:', data);
                 alert(data.error || 'Failed to accept job');
             }
         } catch (error) {
-            alert('Network error');
+            console.error('Accept job network error:', error);
+            alert('Network error. Check console for details.');
         } finally {
             setAccepting(null);
         }
@@ -156,7 +167,7 @@ export default function RiderDashboard() {
                     ) : (
                         <div className="grid md:grid-cols-2 gap-4">
                             {availableJobs.map(job => (
-                                <div key={job.id} className="bg-slate-800 p-6 rounded-xl border border-slate-700">
+                                <div key={job.id || job._id} className="bg-slate-800 p-6 rounded-xl border border-slate-700">
                                     <div className="flex justify-between items-start mb-4">
                                         <div>
                                             <h3 className="font-bold text-lg">{job.itemName}</h3>
@@ -177,11 +188,11 @@ export default function RiderDashboard() {
                                         </div>
                                     </div>
                                     <button
-                                        onClick={() => handleAccept(job.id)}
-                                        disabled={accepting === job.id}
+                                        onClick={() => handleAccept(job.id || job._id)}
+                                        disabled={accepting === (job.id || job._id)}
                                         className="w-full py-3 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 rounded font-bold transition"
                                     >
-                                        {accepting === job.id ? 'Accepting...' : '✓ Accept Job'}
+                                        {accepting === (job.id || job._id) ? 'Accepting...' : '✓ Accept Job'}
                                     </button>
                                 </div>
                             ))}
@@ -199,7 +210,7 @@ export default function RiderDashboard() {
                     ) : (
                         <div className="space-y-4">
                             {activeJobs.map(job => (
-                                <div key={job.id} className="bg-slate-800 p-6 rounded-xl border border-purple-600">
+                                <div key={job.id || job._id} className="bg-slate-800 p-6 rounded-xl border border-purple-600">
                                     <div className="flex justify-between items-start mb-4">
                                         <div>
                                             <h3 className="font-bold text-lg">{job.itemName}</h3>
@@ -236,7 +247,7 @@ export default function RiderDashboard() {
                                         </div>
                                     </div>
                                     <button
-                                        onClick={() => router.push(`/rider/temp/token?orderId=${job.id}`)}
+                                        onClick={() => router.push(`/rider/temp/token?orderId=${job.id || job._id}`)}
                                         className="w-full py-3 bg-slate-700 hover:bg-slate-600 rounded font-bold transition"
                                     >
                                         📱 Open QR Scanner
@@ -257,7 +268,7 @@ export default function RiderDashboard() {
                     ) : (
                         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {completedJobs.map(job => (
-                                <div key={job.id} className="bg-slate-800 p-4 rounded-xl border border-emerald-600">
+                                <div key={job.id || job._id} className="bg-slate-800 p-4 rounded-xl border border-emerald-600">
                                     <div className="flex justify-between items-start mb-2">
                                         <h3 className="font-bold">{job.itemName}</h3>
                                         <span className="text-emerald-400 font-bold">₦{job.price}</span>

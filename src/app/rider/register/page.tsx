@@ -241,7 +241,8 @@ export default function RiderRegister() {
                         {isLoading ? 'Creating Account...' : 'Register as Rider'}
                     </button>
 
-                    <div className="text-center text-sm text-slate-400">
+                    <div className="text-center text-sm text-slate-400 space-y-2">
+                        <p>Already have an account? <a href="/signin" className="text-blue-400 hover:underline">Sign In</a></p>
                         <p>Registering as a seller? <a href="/seller/register" className="text-emerald-400 hover:underline">Click here</a></p>
                     </div>
                 </form>

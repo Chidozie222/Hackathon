@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserByEmail } from '@/lib/database';
+import bcrypt from 'bcryptjs';
 
 export async function POST(req: NextRequest) {
     try {
@@ -13,7 +14,7 @@ export async function POST(req: NextRequest) {
         }
         
         // Find user by email
-        const user = getUserByEmail(email);
+        const user = await getUserByEmail(email);
         
         if (!user) {
             return NextResponse.json({ 
@@ -23,7 +24,18 @@ export async function POST(req: NextRequest) {
         }
         
         // Validate password
-        if (user.password !== password) {
+        // Check if password is hashed (starts with $2)
+        const isHashed = user.password.startsWith('$2');
+        let isValid = false;
+
+        if (isHashed) {
+            isValid = await bcrypt.compare(password, user.password);
+        } else {
+            // Fallback for legacy plain text passwords (if any)
+            isValid = user.password === password;
+        }
+
+        if (!isValid) {
             return NextResponse.json({ 
                 success: false, 
                 error: 'Invalid email or password' 
