@@ -2,16 +2,22 @@ import { createWalletClient, http, publicActions, parseEther, createPublicClient
 import { privateKeyToAccount } from 'viem/accounts';
 import { hardhat, sepolia } from 'viem/chains';
 
-// Determine which network to use
-const USE_SEPOLIA = process.env.SEPOLIA_RPC_URL ? true : false;
-const selectedChain = USE_SEPOLIA ? sepolia : hardhat;
-const rpcUrl = USE_SEPOLIA ? process.env.SEPOLIA_RPC_URL : 'http://127.0.0.1:8545';
+// Network Configuration
+// Set USE_LOCAL_HARDHAT=true in .env to use local Hardhat network
+// Remove or set to false to use Sepolia testnet
+const USE_LOCAL = process.env.USE_LOCAL_HARDHAT === 'true';
+const selectedChain = USE_LOCAL ? hardhat : sepolia;
+const rpcUrl = USE_LOCAL 
+    ? 'http://127.0.0.1:8545' 
+    : (process.env.SEPOLIA_RPC_URL || 'http://127.0.0.1:8545');
 
 // Platform Private Key
 const PRIVATE_KEY = (process.env.SERVER_WALLET_PRIVATE_KEY as `0x${string}`) || '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
 const account = privateKeyToAccount(PRIVATE_KEY);
 
-console.log(`🔗 Server wallet using network: ${selectedChain.name} (${selectedChain.id})`);
+console.log(`🔗 Server wallet configured for: ${selectedChain.name} (Chain ID: ${selectedChain.id})`);
+console.log(`📡 RPC URL: ${rpcUrl}`);
+console.log(`💼 Wallet Address: ${account.address}`);
 
 export const serverWallet = createWalletClient({
   account,
