@@ -1,7 +1,8 @@
 import { Paystack } from 'paystack-sdk';
 
 // REPLACE WITH YOUR ENV VARIABLE
-const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY || 'sk_test_0000000000000000000000000000000000000000'; // Dummy Key
+const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY || '';
+if (!process.env.PAYSTACK_SECRET_KEY) console.warn("Missing PAYSTACK_SECRET_KEY env var");
 
 const paystack = new Paystack(PAYSTACK_SECRET_KEY);
 

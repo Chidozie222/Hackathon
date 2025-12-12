@@ -20,7 +20,7 @@ const FACTORY_ABI = [
 
 // Address would come from env or constant
 // Address would come from env or constant
-const FACTORY_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3"; // Localhost default deploy
+const FACTORY_ADDRESS = (process.env.NEXT_PUBLIC_FACTORY_ADDRESS as `0x${string}`) || "0x5FbDB2315678afecb367f032d93F642f64180aa3"; // Localhost default deploy
 
 export default function EscrowCreate() {
   // Hardcode mode to STANDARD for simplified view

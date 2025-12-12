@@ -8,7 +8,7 @@ const TAG_LENGTH = 16;
 const KEY_LENGTH = 32;
 
 // Get encryption key from environment or generate default (should be in .env.local)
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'default-key-change-in-production-min-32-chars-long';
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'default-fallback-key-must-be-replaced';
 
 /**
  * Derives a key from the master key using PBKDF2
