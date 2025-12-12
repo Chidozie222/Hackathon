@@ -2,6 +2,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { useSocket, joinOrderRoom, leaveOrderRoom } from '@/lib/socket';
+import LiveMap from '@/components/LiveMap';
 
 export default function TrackOrder() {
     const params = useParams();
@@ -376,7 +377,7 @@ export default function TrackOrder() {
                     </div>
                 )}
 
-                {/* Rider Info (Mock) */}
+                {/* Rider Info with Live GPS Tracking */}
                 {(order.status === 'PICKED_UP' || order.status === 'IN_TRANSIT') && (
                     <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 mb-6">
                         <h2 className="text-xl font-bold mb-4">Rider Information</h2>
@@ -394,9 +395,13 @@ export default function TrackOrder() {
                                 <span>Motorcycle - ABC 123</span>
                             </div>
                         </div>
-                        <div className="mt-4 p-4 bg-slate-900 rounded">
-                            <p className="text-sm text-slate-400 mb-2">📍 Current Location (Mock)</p>
-                            <p className="text-sm">En route to delivery address...</p>
+                        
+                        {/* Live GPS Map */}
+                        <div className="mt-6">
+                            <LiveMap 
+                                orderId={order.id}
+                                deliveryAddress={order.deliveryAddress}
+                            />
                         </div>
                     </div>
                 )}

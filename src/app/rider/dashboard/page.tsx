@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSocket, joinRiderDashboard } from '@/lib/socket';
 import { useToast } from '@/context/ToastContext';
+import GPSTracker from '@/components/GPSTracker';
 
 export default function RiderDashboard() {
     const router = useRouter();
@@ -260,7 +261,16 @@ export default function RiderDashboard() {
                                         </div>
                                     </div>
                                     
-                                    <div className="grid grid-cols-2 gap-4">
+                                    {/* GPS Tracker for Active Deliveries */}
+                                    <div className="mt-4">
+                                        <GPSTracker
+                                            orderId={job.id || job._id}
+                                            riderId={user.id || user._id}
+                                            isActive={job.status === 'PICKED_UP' || job.status === 'IN_TRANSIT'}
+                                        />
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-2 gap-4 mt-4">
                                         <button
                                             onClick={() => router.push(`/rider/temp/token?orderId=${job.id || job._id}`)}
                                             className="w-full py-3 bg-slate-700 hover:bg-slate-600 rounded font-bold transition"

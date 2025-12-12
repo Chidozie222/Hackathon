@@ -1,15 +1,96 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getOrderById, updateOrder } from '@/lib/database';
+import OpenAI from 'openai';
 
-// Mock AI analysis (replace with real OpenAI API in production)
-async function analyzeDispute(agreementSummary: string, cancellationReason: string) {
-    // For now, use a simple rule-based mock
-    // In production, call OpenAI API
-    
-    const mockOpenAICall = async () => {
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 1500));
+// OpenAI client - will be null if API key not provided
+const openaiClient = process.env.OPENAI_API_KEY 
+    ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+    : null;
+
+// Real OpenAI API dispute analysis
+async function analyzeDisputeWithOpenAI(agreementSummary: string, cancellationReason: string) {
+    if (!openaiClient) {
+        console.log('⚠️ OpenAI API key not found, using mock analysis');
+        return analyzeDisputeMock(agreementSummary, cancellationReason);
+    }
+
+    try {
+        console.log('🤖 Using OpenAI GPT-4 for dispute analysis...');
         
+        const completion = await openaiClient.chat.completions.create({
+            model: "gpt-4",
+            messages: [
+                {
+                    role: "system",
+                    content: `You are a fair and impartial dispute resolution AI for an e-commerce escrow platform. 
+Your task is to analyze order cancellation disputes by comparing the original agreement with the buyer's cancellation reason.
+
+Decision Rules:
+1. If the buyer complains about something explicitly mentioned in the agreement → PAY_SELLER (invalid complaint)
+2. If the buyer reports a legitimate quality issue not disclosed → REFUND_BUYER (valid complaint)
+3. If the buyer shows remorse (changed mind, no longer want) → PAY_SELLER (buyer remorse)
+4. If the agreement says "as-is" or has disclaimers → PAY_SELLER (buyer accepted terms)
+
+Return ONLY valid JSON in this exact format:
+{"decision": "PAY_SELLER" or "REFUND_BUYER", "explanation": "clear reason for decision"}`
+                },
+                {
+                    role: "user",
+                    content: `Analyze this dispute:
+
+ORIGINAL AGREEMENT SUMMARY:
+"${agreementSummary}"
+
+BUYER'S CANCELLATION REASON:
+"${cancellationReason}"
+
+Return JSON decision.`
+                }
+            ],
+            temperature: 0.3,
+            max_tokens: 300,
+            response_format: { type: "json_object" }
+        });
+
+        const content = completion.choices[0].message.content;
+        if (!content) {
+            throw new Error('No response from OpenAI');
+        }
+
+        const result = JSON.parse(content);
+        
+        // Validate response format
+        if (!result.decision || !result.explanation) {
+            throw new Error('Invalid response format from OpenAI');
+        }
+
+        if (result.decision !== 'PAY_SELLER' && result.decision !== 'REFUND_BUYER') {
+            throw new Error('Invalid decision from OpenAI');
+        }
+
+        console.log('✅ OpenAI analysis complete:', result.decision);
+        
+        return {
+            decision: result.decision as 'REFUND_BUYER' | 'PAY_SELLER',
+            explanation: result.explanation
+        };
+
+    } catch (error: any) {
+        console.error('❌ OpenAI API error:', error.message);
+        console.log('⚠️ Falling back to mock analysis');
+        
+        // Fallback to mock if OpenAI fails
+        return analyzeDisputeMock(agreementSummary, cancellationReason);
+    }
+}
+
+// Mock AI analysis (fallback when OpenAI unavailable)
+async function analyzeDisputeMock(agreementSummary: string, cancellationReason: string) {
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    console.log('🔧 Using mock dispute analysis');
+
         const agreementLower = agreementSummary.toLowerCase();
         const reasonLower = cancellationReason.toLowerCase();
         
@@ -78,9 +159,6 @@ async function analyzeDispute(agreementSummary: string, cancellationReason: stri
         }
         
         return { decision, explanation };
-    };
-    
-    return await mockOpenAICall();
 }
 
 // Helper function to extract meaningful terms
@@ -181,9 +259,9 @@ export async function POST(req: NextRequest) {
             }, { status: 400 });
         }
         
-        // Analyze the dispute with AI
+        // Analyze the dispute with AI (OpenAI if available, mock as fallback)
         console.log('🤖 AI analyzing dispute...');
-        const { decision, explanation } = await analyzeDispute(
+        const { decision, explanation } = await analyzeDisputeWithOpenAI(
             order.agreementSummary,
             order.cancellationReason
         );

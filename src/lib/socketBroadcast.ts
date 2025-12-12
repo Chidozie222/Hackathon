@@ -93,3 +93,23 @@ export function broadcastJobTaken(jobId: string) {
         console.error('Broadcast error:', error);
     }
 }
+
+/**
+ * Broadcasts rider location update to order watchers (buyers/sellers)
+ */
+export function broadcastLocationUpdate(orderId: string, location: {
+    latitude: number;
+    longitude: number;
+    accuracy: number;
+    timestamp: number;
+}) {
+    try {
+        const io = getIO();
+        if (io) {
+            io.to(`order-${orderId}`).emit('location-updated', location);
+            console.log(`📍 Broadcast: location updated for order-${orderId}`);
+        }
+    } catch (error) {
+        console.error('Location broadcast error:', error);
+    }
+}
