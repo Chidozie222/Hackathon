@@ -1,8 +1,8 @@
 "use client";
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 
-export default function MockCheckout() {
+function MockCheckoutContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const [countdown, setCountdown] = useState(3);
@@ -24,7 +24,7 @@ export default function MockCheckout() {
         }, 1000);
 
         return () => clearInterval(timer);
-    }, [reference]);
+    }, [reference, orderId]);
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-emerald-600 to-blue-600 flex items-center justify-center p-8">
@@ -67,5 +67,17 @@ export default function MockCheckout() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function MockCheckout() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-white flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
+            </div>
+        }>
+            <MockCheckoutContent />
+        </Suspense>
     );
 }
