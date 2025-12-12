@@ -78,3 +78,18 @@ export function notifyRiderJobUpdate(riderId: string, job: any) {
         console.error('Notify error:', error);
     }
 }
+
+/**
+ * Broadcasts when a job is taken (removed from available list)
+ */
+export function broadcastJobTaken(jobId: string) {
+    try {
+        const io = getIO();
+        if (io) {
+            io.emit('job-taken', { id: jobId });
+            console.log(`📡 Broadcast: job-${jobId} taken`);
+        }
+    } catch (error) {
+        console.error('Broadcast error:', error);
+    }
+}

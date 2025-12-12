@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getOrderById, assignRiderToOrder, getActiveJobsByRiderId } from '@/lib/database';
+import { broadcastJobTaken, notifyRiderJobUpdate, broadcastOrderUpdate } from '@/lib/socketBroadcast';
 
 export async function POST(req: NextRequest) {
     try {
@@ -60,7 +61,14 @@ export async function POST(req: NextRequest) {
             }, { status: 409 }); // 409 Conflict
         }
         
+        // ... (inside POST function, after successful atomic update)
+
         console.log(`✅ Job ${orderId} accepted by rider ${riderId}`);
+        
+        // Broadcast updates
+        broadcastJobTaken(orderId);
+        notifyRiderJobUpdate(riderId, updatedOrder);
+        broadcastOrderUpdate(orderId, updatedOrder); // Notify seller tracking page
         
         return NextResponse.json({ 
             success: true,

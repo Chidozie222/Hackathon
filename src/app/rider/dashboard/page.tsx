@@ -54,9 +54,16 @@ export default function RiderDashboard() {
                 fetchJobs(userData.id); // Refresh jobs
             });
 
+            // Listen for taken jobs (remove from available)
+            socket.on('job-taken', ({ id }: { id: string }) => {
+                console.log(`📡 Job ${id} taken by another rider`);
+                setAvailableJobs(prev => prev.filter(job => (job.id !== id && job._id !== id)));
+            });
+
             return () => {
                 socket.off('new-job');
                 socket.off('rider-job-update');
+                socket.off('job-taken');
             };
         } else {
             // Fallback to polling
@@ -246,12 +253,43 @@ export default function RiderDashboard() {
                                             </div>
                                         </div>
                                     </div>
-                                    <button
-                                        onClick={() => router.push(`/rider/temp/token?orderId=${job.id || job._id}`)}
-                                        className="w-full py-3 bg-slate-700 hover:bg-slate-600 rounded font-bold transition"
-                                    >
-                                        📱 Open QR Scanner
-                                    </button>
+                                    
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <button
+                                            onClick={() => router.push(`/rider/temp/token?orderId=${job.id || job._id}`)}
+                                            className="w-full py-3 bg-slate-700 hover:bg-slate-600 rounded font-bold transition"
+                                        >
+                                            📱 Open QR Scanner
+                                        </button>
+                                        
+                                        {job.status === 'PAID' && (
+                                            <button
+                                                onClick={async () => {
+                                                    if (!confirm('Are you sure you want to cancel this job? It will be made available to other riders.')) return;
+                                                    try {
+                                                        const res = await fetch('/api/jobs/cancel', {
+                                                            method: 'POST',
+                                                            headers: { 'Content-Type': 'application/json' },
+                                                            body: JSON.stringify({ orderId: job.id || job._id, riderId: user.id || user._id })
+                                                        });
+                                                        const data = await res.json();
+                                                        if (data.success) {
+                                                            alert('Job cancelled successfully.');
+                                                            fetchJobs(user.id || user._id);
+                                                        } else {
+                                                            alert(data.error || 'Failed to cancel job');
+                                                        }
+                                                    } catch (err) {
+                                                        console.error('Cancel error:', err);
+                                                        alert('Failed to cancel job');
+                                                    }
+                                                }}
+                                                className="w-full py-3 bg-red-900/50 hover:bg-red-900 text-red-200 rounded font-bold transition border border-red-700"
+                                            >
+                                                ✕ Cancel Job
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
                             ))}
                         </div>

@@ -52,6 +52,20 @@ export async function GET(req: NextRequest) {
                     escrowAddress: escrowAddress || undefined
                 });
                 
+                // Broadcast new job to riders if it's a platform job
+                if (order.riderType === 'PLATFORM') {
+                    const { broadcastNewJob } = await import('@/lib/socketBroadcast');
+                    // We need to pass the updated order object (or at least the fields the rider dashboard needs)
+                    // Since updateOrder doesn't return the object, let's construct it or re-fetch active fields.
+                    // simpler: construct the job object manually with new status
+                    broadcastNewJob({
+                        ...order,
+                        status: 'PAID',
+                        paymentReference: reference,
+                        escrowAddress: escrowAddress || undefined
+                    });
+                }
+                
                 console.log(`✅ Payment verified for order ${orderId}`);
                 console.log(`💰 Amount: ₦${amountInNGN} → ${amountInETH} ETH`);
                 console.log(`⛓️ Blockchain escrow created at: ${escrowAddress}`);

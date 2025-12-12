@@ -102,6 +102,33 @@ export async function assignRiderToOrder(orderId: string, riderId: string): Prom
     return order as IOrder | null;
 }
 
+export async function unassignRiderFromOrder(orderId: string, riderId: string): Promise<IOrder | null> {
+    await connectDB();
+    
+    // Atomic update: Only update if riderId matches (security)
+    // Try custom 'id' first
+    let order = await OrderModel.findOneAndUpdate(
+        { id: orderId, riderId: riderId },
+        { 
+            $unset: { riderId: "", acceptedAt: "" }
+        },
+        { new: true }
+    ).lean();
+
+    // Fallback to _id
+    if (!order && orderId.match(/^[0-9a-fA-F]{24}$/)) {
+        order = await OrderModel.findOneAndUpdate(
+            { _id: orderId, riderId: riderId },
+            { 
+                $unset: { riderId: "", acceptedAt: "" }
+            },
+            { new: true }
+        ).lean();
+    }
+
+    return order as IOrder | null;
+}
+
 export async function getOrdersBySellerId(sellerId: string): Promise<IOrder[]> {
     await connectDB();
     const orders = await OrderModel.find({ sellerId }).sort({ createdAt: -1 }).lean();

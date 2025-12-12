@@ -1,12 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { addOrder } from '@/lib/database';
 import { generateQRCode, generateUniqueToken } from '@/lib/qrcode';
+import { broadcastNewJob } from '@/lib/socketBroadcast';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(req: NextRequest) {
     try {
         const {
             sellerId,
+// ... (lines 10-54 unchanged)
+        await addOrder(order);
+        
+        console.log('✅ Order created:', orderId);
+
+        // Broadcast to riders if it's a public platform job
+        if (riderType === 'PLATFORM' && order.status === 'PAID') {
+             // Wait, status is PENDING_PAYMENT initially. 
+             // We should only broadcast when it becomes PAID.
+             // But for now, let's assume if it WAS paid (not yet possible here).
+             // Actually, the order is created as PENDING_PAYMENT.
+             // It only becomes available when PAID.
+             // So we should NOT broadcast here. We should broadcast in the webhook/payment confirmation.
+        }
+        
+        // However, for testing, maybe we want to see it?
+        // No, real flow: Create -> Pay -> Available.
+        // So broadcastNewJob should be in verify-payment or confirm-payment.
+        
+        // Let's check verify-payment.
+        
+        // Store agreement hash on blockchain
             itemName,
             price,
             buyerPhone,
