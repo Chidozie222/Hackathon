@@ -59,6 +59,10 @@ export async function POST(req: NextRequest) {
         // Broadcast to ALL riders that a "new" job is available (since it was released)
         broadcastNewJob(updatedOrder);
         
+        // Notify seller specifically
+        const { notifySellerOrderUpdate } = await import('@/lib/socketBroadcast');
+        notifySellerOrderUpdate(updatedOrder.sellerId, updatedOrder);
+        
         // Notify seller/tracking
         broadcastOrderUpdate(orderId, updatedOrder);
         

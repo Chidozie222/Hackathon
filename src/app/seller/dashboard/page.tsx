@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import SellerSidebar from '@/components/layout/SellerSidebar';
+import { useSocket, joinSellerDashboard } from '@/lib/socket';
 
 export default function SellerDashboard() {
     const router = useRouter();
@@ -58,6 +59,55 @@ export default function SellerDashboard() {
         };
         return styles[status] || 'bg-slate-500/10 text-slate-500 border-slate-500/20';
     };
+
+    // Socket.io for Real-time Notifications
+    const { socket, isConnected } = useSocket();
+    
+    useEffect(() => {
+        if (isConnected && socket && user) {
+            joinSellerDashboard(user.id);
+
+            socket.on('seller-order-update', (updatedOrder: any) => {
+                console.log('🔔 Order Update:', updatedOrder);
+                
+                // Show notification (browser notification if enabled)
+                if (Notification.permission === 'granted') {
+                    let msg = `Order ${updatedOrder.itemName} updated to ${updatedOrder.status}`;
+                    if (updatedOrder.riderId && !updatedOrder.acceptedAt) { 
+                         // Check if it was just unassigned (cancel) is tricky with just 'updatedOrder'
+                         // But if status is PAID and riderId is missing/empty, it was cancelled.
+                         // Actually updatedOrder object might not have previous state.
+                         // Let's just say "Order Status Updated"
+                    }
+                    if (updatedOrder.status === 'IN_TRANSIT') msg = `Rider picked up ${updatedOrder.itemName}`;
+                    
+                    // Specific check for acceptance (status is still PAID but riderId is set)
+                    if (updatedOrder.riderId && updatedOrder.status === 'PAID') {
+                         msg = `Rider accepted ${updatedOrder.itemName}`;
+                    }
+                    
+                    new Notification('Order Update', { body: msg, icon: '/icon.png' });
+                }
+
+                // Refresh orders to update the list UI
+                fetchOrders(user.id);
+                
+                // Optional: Show in-app toast here
+                const toast = document.createElement('div');
+                toast.className = 'fixed bottom-4 right-4 bg-purple-600 text-white px-6 py-4 rounded-xl shadow-2xl transform transition-all duration-500 z-50 flex items-center gap-3';
+                toast.innerHTML = `<span>🔔</span> <div><p class="font-bold">Order Update</p><p class="text-xs text-purple-200">${updatedOrder.itemName} is now ${updatedOrder.status.replace(/_/g, ' ')}</p></div>`;
+                document.body.appendChild(toast);
+                setTimeout(() => {
+                    toast.style.opacity = '0';
+                    setTimeout(() => toast.remove(), 500);
+                }, 4000);
+            });
+
+            return () => {
+                socket.off('seller-order-update');
+            };
+        }
+    }, [isConnected, socket, user]);
 
     if (!user) return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-500">Loading Dashboard...</div>;
 

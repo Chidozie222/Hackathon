@@ -68,6 +68,11 @@ export async function POST(req: NextRequest) {
         // Broadcast updates
         broadcastJobTaken(orderId);
         notifyRiderJobUpdate(riderId, updatedOrder);
+        
+        // Notify seller specifically (for dashboard toast)
+        const { notifySellerOrderUpdate } = await import('@/lib/socketBroadcast'); 
+        notifySellerOrderUpdate(updatedOrder.sellerId, updatedOrder);
+        
         broadcastOrderUpdate(orderId, updatedOrder); // Notify seller tracking page
         
         return NextResponse.json({ 
