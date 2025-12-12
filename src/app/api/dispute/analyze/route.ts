@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
             }, { status: 400 });
         }
         
-        const order = getOrderById(orderId);
+        const order = await getOrderById(orderId);
         
         if (!order) {
             return NextResponse.json({ 
@@ -136,7 +136,7 @@ export async function POST(req: NextRequest) {
         console.log('   Explanation:', explanation);
         
         // Update order with AI decision
-        updateOrder(orderId, {
+        await updateOrder(orderId, {
             disputeResolution: {
                 aiDecision: decision,
                 aiExplanation: explanation,
