@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSocket, joinRiderDashboard } from '@/lib/socket';
+import { useToast } from '@/context/ToastContext';
 
 export default function RiderDashboard() {
     const router = useRouter();
@@ -12,6 +13,7 @@ export default function RiderDashboard() {
     const [loading, setLoading] = useState(true);
     const [accepting, setAccepting] = useState<string | null>(null);
     const { socket, isConnected } = useSocket();
+    const { showToast } = useToast();
 
     useEffect(() => {
         // Check if user is logged in
@@ -23,7 +25,7 @@ export default function RiderDashboard() {
 
         const userData = JSON.parse(userStr);
         if (userData.type !== 'RIDER') {
-            alert('Access denied. Riders only.');
+            showToast('Access denied. Riders only.', 'error');
             router.push('/');
             return;
         }
@@ -39,13 +41,7 @@ export default function RiderDashboard() {
             socket.on('new-job', (job: any) => {
                 console.log('📡 New job available!', job);
                 setAvailableJobs(prev => [job, ...prev]);
-                // Optional: Show notification
-                if (Notification.permission === 'granted') {
-                    new Notification('New Delivery Job!', {
-                        body: `${job.itemName} - ₦${job.price}`,
-                        icon: '/icon.png'
-                    });
-                }
+                showToast(`New Job: ${job.itemName} - ₦${job.price}`, 'success');
             });
 
             // Listen for rider-specific job updates
@@ -90,7 +86,7 @@ export default function RiderDashboard() {
 
     const handleAccept = async (orderId: string) => {
         if (!user || (!user.id && !user._id)) {
-            alert('User profile error. Please sign out and sign in again.');
+            showToast('User profile error. Please sign out and sign in again.', 'error');
             return;
         }
         
@@ -109,14 +105,14 @@ export default function RiderDashboard() {
             const data = await res.json();
             if (data.success) {
                 await fetchJobs(riderId);
-                alert('Job accepted successfully!');
+                showToast('Job accepted successfully!', 'success');
             } else {
                 console.error('Accept job failed:', data);
-                alert(data.error || 'Failed to accept job');
+                showToast(data.error || 'Failed to accept job', 'error');
             }
         } catch (error) {
             console.error('Accept job network error:', error);
-            alert('Network error. Check console for details.');
+            showToast('Network error. Check console for details.', 'error');
         } finally {
             setAccepting(null);
         }
@@ -135,17 +131,27 @@ export default function RiderDashboard() {
         <div className="min-h-screen bg-slate-950 text-slate-100 p-8">
             <div className="max-w-7xl mx-auto">
                 {/* Header */}
-                <div className="mb-8">
-                    <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent">
-                        🏍️ Rider Dashboard
-                    </h1>
-                    <p className="text-slate-400">Welcome back, {user?.name}</p>
-                    <button
-                        onClick={() => fetchJobs(user?.id)}
-                        className="mt-4 px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded text-sm font-bold transition"
-                    >
-                        🔄 Refresh Jobs
-                    </button>
+                <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent">
+                            🏍️ Rider Dashboard
+                        </h1>
+                        <p className="text-slate-400">Welcome back, {user?.name}</p>
+                    </div>
+                    <div className="flex gap-3">
+                        <button
+                            onClick={() => fetchJobs(user?.id)}
+                            className="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded text-sm font-bold transition flex items-center gap-2"
+                        >
+                            <span>🔄</span> Refresh
+                        </button>
+                        <button
+                            onClick={() => router.push('/rider/settings')}
+                            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded text-sm font-bold transition flex items-center gap-2"
+                        >
+                            <span>⚙️</span> Settings
+                        </button>
+                    </div>
                 </div>
 
                 {/* Stats */}
@@ -274,14 +280,14 @@ export default function RiderDashboard() {
                                                         });
                                                         const data = await res.json();
                                                         if (data.success) {
-                                                            alert('Job cancelled successfully.');
+                                                            showToast('Job cancelled successfully.', 'info');
                                                             fetchJobs(user.id || user._id);
                                                         } else {
-                                                            alert(data.error || 'Failed to cancel job');
+                                                            showToast(data.error || 'Failed to cancel job', 'error');
                                                         }
                                                     } catch (err) {
                                                         console.error('Cancel error:', err);
-                                                        alert('Failed to cancel job');
+                                                        showToast('Failed to cancel job', 'error');
                                                     }
                                                 }}
                                                 className="w-full py-3 bg-red-900/50 hover:bg-red-900 text-red-200 rounded font-bold transition border border-red-700"

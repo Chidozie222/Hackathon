@@ -4,39 +4,40 @@ import Link from 'next/link';
 
 export default function HomePage() {
     return (
-        <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-emerald-500/30">
+        <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/20">
             <Navbar />
             
             {/* Background Effects */}
-            <div className="fixed inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-emerald-600/10 blur-[100px] animate-pulse"></div>
-                <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-blue-600/10 blur-[100px] animate-pulse delay-1000"></div>
-                <div className="absolute top-[20%] left-[20%] w-[2px] h-[2px] bg-white rounded-full animate-ping"></div>
-                <div className="absolute top-[60%] right-[20%] w-[3px] h-[3px] bg-emerald-500 rounded-full animate-ping delay-500"></div>
+            <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+                <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] rounded-full bg-primary/5 blur-[120px] animate-pulse"></div>
+                <div className="absolute bottom-[10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-success/5 blur-[100px] animate-pulse delay-700"></div>
             </div>
 
             {/* Hero Section */}
-            <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 px-6">
-                <div className="max-w-7xl mx-auto text-center relative z-10">
-                    <div className="inline-block mb-6 px-4 py-1.5 rounded-full bg-slate-900/50 border border-slate-700 backdrop-blur-sm animate-fade-in-up">
-                        <span className="text-emerald-400 text-sm font-semibold tracking-wide uppercase">✨ Blockchain-Secured Delivery</span>
+            <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 px-6 z-10">
+                <div className="max-w-7xl mx-auto text-center">
+                    <div className="inline-block mb-8 px-5 py-2 rounded-full bg-white border border-gray-200 shadow-sm animate-slide-in">
+                        <span className="text-primary font-bold text-sm tracking-wide uppercase flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-success animate-ping"></span>
+                            Live on Ethereum
+                        </span>
                     </div>
                     
-                    <h1 className="text-5xl md:text-7xl font-extrabold mb-8 leading-tight tracking-tight">
-                        Trust in Every <br />
-                        <span className="bg-gradient-to-r from-emerald-400 via-blue-500 to-purple-500 bg-clip-text text-transparent animate-gradient">
-                            Transaction
+                    <h1 className="text-5xl md:text-7xl font-extrabold mb-8 leading-tight tracking-tight text-white animate-slide-in" style={{ animationDelay: '0.1s' }}>
+                        Decentralized Trust for <br />
+                        <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                            Local Commerce
                         </span>
                     </h1>
                     
-                    <p className="text-xl md:text-2xl text-slate-400 mb-12 max-w-3xl mx-auto leading-relaxed">
-                        The world's first decentralized delivery platform. Funds are held in smart contract escrow until the buyer confirms receipt. Zero fraud, 100% peace of mind.
+                    <p className="text-xl md:text-2xl text-gray-500 mb-12 max-w-3xl mx-auto leading-relaxed animate-slide-in" style={{ animationDelay: '0.2s' }}>
+                        The first delivery platform powered by smart contracts. Funds are held in escrow until the buyer verifies the delivery. Say goodbye to payment fraud.
                     </p>
                     
-                    <div className="flex flex-col sm:flex-row gap-5 justify-center items-center">
+                    <div className="flex flex-col sm:flex-row gap-5 justify-center items-center animate-slide-in" style={{ animationDelay: '0.3s' }}>
                         <Link
                             href="/seller/register"
-                            className="group relative px-8 py-4 bg-emerald-600 hover:bg-emerald-500 rounded-xl font-bold text-lg transition-all hover:scale-105 hover:shadow-[0_0_40px_-10px_rgba(16,185,129,0.5)]"
+                            className="group relative px-8 py-4 bg-primary hover:bg-blue-700 text-white rounded-xl font-bold text-lg transition-all hover:scale-105 shadow-lg shadow-blue-500/20"
                         >
                             <span className="relative z-10 flex items-center gap-2">
                                 Start Selling 
@@ -46,69 +47,47 @@ export default function HomePage() {
                         
                         <Link
                             href="/rider/register"
-                            className="px-8 py-4 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-600 rounded-xl font-bold text-lg transition-all hover:scale-105 flex items-center gap-2"
+                            className="px-8 py-4 bg-white hover:bg-gray-50 text-dark border border-gray-200 rounded-xl font-bold text-lg transition-all hover:scale-105 flex items-center gap-2 shadow-sm"
                         >
                             <span>Earn as Rider</span>
                         </Link>
                     </div>
-
-                    {/* Stats */}
-                    <div className="mt-20 grid grid-cols-2 md:grid-cols-4 gap-8 border-t border-slate-800 pt-12">
-                        {[
-                            { label: "Active Users", value: "10k+" },
-                            { label: "Secured Volume", value: "$2M+" },
-                            { label: "Avg Delivery", value: "24m" },
-                            { label: "Fraud Rate", value: "0%" },
-                        ].map((stat, i) => (
-                            <div key={i} className="text-center">
-                                <div className="text-3xl font-bold text-white mb-2">{stat.value}</div>
-                                <div className="text-slate-500 text-sm uppercase tracking-wider font-semibold">{stat.label}</div>
-                            </div>
-                        ))}
-                    </div>
                 </div>
             </section>
 
-            {/* Features Section */}
-            <section className="py-24 bg-slate-900/50 relative">
+            {/* Features Grid */}
+            <section className="py-24 relative z-10">
                 <div className="max-w-7xl mx-auto px-6">
-                    <div className="text-center mb-16">
-                        <h2 className="text-3xl md:text-5xl font-bold mb-6">Security First Architecture</h2>
-                        <p className="text-slate-400 max-w-2xl mx-auto text-lg">
-                            We've reimagined last-mile delivery by integrating blockchain escrow directly into the workflow.
-                        </p>
-                    </div>
-
                     <div className="grid md:grid-cols-3 gap-8">
                         {[
                             {
-                                icon: "💼",
+                                icon: "🔒",
                                 title: "Smart Escrow",
-                                desc: "Funds are locked in a smart contract. The seller sees proof of funds, but can't access them until delivery.",
-                                color: "emerald"
+                                desc: "No trust needed. Funds are locked on-chain and only released when the buyer confirms receipt via QR code.",
+                                color: "bg-blue-900/20 text-blue-400"
                             },
                             {
-                                icon: "🤖",
-                                title: "AI Disputes",
-                                desc: "Conflict? Our impartial AI analyzes evidence and blockchain agreements to resolve disputes in seconds.",
-                                color: "blue"
+                                icon: "⚡",
+                                title: "Instant Settlements",
+                                desc: "Riders and sellers get paid immediately upon delivery. No weekly payouts, no delays, direct to your wallet.",
+                                color: "bg-green-900/20 text-green-400"
                             },
                             {
-                                icon: "📱",
-                                title: "QR Chain",
-                                desc: "A cryptographic chain of custody. Pickup and delivery are verified on-chain via encrypted QR codes.",
-                                color: "purple"
+                                icon: "🛡️",
+                                title: "Fraud Proof",
+                                desc: "Every step is verified. AI analyzes dispute claims while the blockchain provides an immutable audit trail.",
+                                color: "bg-purple-900/20 text-purple-400"
                             }
                         ].map((feature, i) => (
                             <div 
                                 key={i}
-                                className="group p-8 rounded-2xl bg-slate-800/50 border border-slate-700 hover:border-slate-600 hover:bg-slate-800 transition-all hover:-translate-y-2 hover:shadow-2xl"
+                                className="group p-8 rounded-3xl bg-slate-800/50 border border-slate-700 hover:border-primary/50 hover:shadow-xl transition-all hover:-translate-y-1"
                             >
-                                <div className={`w-14 h-14 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center text-3xl mb-6 group-hover:scale-110 transition-transform`}>
+                                <div className={`w-14 h-14 rounded-2xl ${feature.color} flex items-center justify-center text-3xl mb-6 group-hover:scale-110 transition-transform`}>
                                     {feature.icon}
                                 </div>
-                                <h3 className="text-2xl font-bold mb-4 text-white group-hover:text-emerald-400 transition-colors">{feature.title}</h3>
-                                <p className="text-slate-400 leading-relaxed">
+                                <h3 className="text-2xl font-bold mb-4 text-white">{feature.title}</h3>
+                                <p className="text-gray-400 leading-relaxed">
                                     {feature.desc}
                                 </p>
                             </div>
@@ -117,28 +96,61 @@ export default function HomePage() {
                 </div>
             </section>
 
+            {/* Application Flow */}
+            <section className="py-24 bg-slate-900/30 relative overflow-hidden">
+                <div className="max-w-7xl mx-auto px-6">
+                    <div className="text-center mb-16">
+                        <span className="text-primary font-bold tracking-wider uppercase text-sm">How it works</span>
+                        <h2 className="text-3xl md:text-5xl font-bold mt-2 text-white">Secure Delivery in 3 Steps</h2>
+                    </div>
+
+                    <div className="grid md:grid-cols-3 gap-12 relative">
+                        {/* Connecting Line */}
+                        <div className="hidden md:block absolute top-12 left-0 right-0 h-0.5 bg-gradient-to-r from-slate-700 via-primary/50 to-slate-700 transform -translate-y-1/2 z-0"></div>
+
+                        {[
+                            { step: "01", title: "Order & Pay", desc: "Buyer orders and pays into the Smart Contract Escrow." },
+                            { step: "02", title: "Verify & Pickup", desc: "Rider scans QR code at pickup to verify chain of custody." },
+                            { step: "03", title: "Deliver & Release", desc: "Buyer scans delivery QR. Contract releases funds instantly." }
+                        ].map((item, i) => (
+                            <div key={i} className="relative z-10 text-center">
+                                <div className="w-24 h-24 mx-auto bg-slate-800 rounded-full border-4 border-slate-700 shadow-xl flex items-center justify-center text-primary font-black text-2xl mb-6 transform transition-transform hover:scale-110">
+                                    {item.step}
+                                </div>
+                                <h3 className="text-xl font-bold mb-3 text-white">{item.title}</h3>
+                                <p className="text-gray-400 max-w-xs mx-auto">{item.desc}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
             {/* CTA Section */}
             <section className="py-24 px-6">
-                <div className="max-w-5xl mx-auto p-12 rounded-3xl bg-gradient-to-r from-emerald-900/50 to-blue-900/50 border border-white/10 text-center relative overflow-hidden">
-                    <div className="absolute inset-0 bg-grid-white/[0.05] [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))]"></div>
+                <div className="max-w-5xl mx-auto p-12 rounded-3xl bg-dark text-white text-center relative overflow-hidden shadow-2xl">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 rounded-full blur-[80px]"></div>
+                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-success/20 rounded-full blur-[80px]"></div>
+                    
                     <div className="relative z-10">
-                        <h2 className="text-4xl font-bold mb-6">Ready to Ship Securely?</h2>
-                        <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
-                            Join thousands of sellers and riders building the future of decentralized commerce.
+                        <h2 className="text-4xl font-bold mb-6">Ready to Ship with Trust?</h2>
+                        <p className="text-xl text-gray-300 mb-10 max-w-2xl mx-auto">
+                            Join the decentralized revolution. Low fees, instant payments, and zero chargebacks.
                         </p>
-                        <Link
-                            href="/seller/register"
-                            className="inline-block px-10 py-4 bg-white text-slate-950 hover:bg-slate-200 rounded-full font-bold text-lg transition hover:scale-105 shadow-xl"
-                        >
-                            Get Started Now
-                        </Link>
+                        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                            <Link
+                                href="/seller/register"
+                                className="px-10 py-4 bg-primary hover:bg-blue-600 rounded-xl font-bold text-lg transition shadow-lg shadow-blue-900/50"
+                            >
+                                Get Started as Seller
+                            </Link>
+                        </div>
                     </div>
                 </div>
             </section>
 
              {/* Footer */}
-             <footer className="py-12 border-t border-slate-800 text-center text-slate-500 text-sm">
-                <p>&copy; {new Date().getFullYear()} SecureDrop Protocol. Built for ETH Lagos.</p>
+             <footer className="py-12 text-center text-gray-400 text-sm">
+                <p>&copy; {new Date().getFullYear()} TrustLock Protocol. Built for ETH Lagos.</p>
             </footer>
         </div>
     );

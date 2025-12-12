@@ -16,7 +16,9 @@ export const metadata: Metadata = {
   title: "TrustLock",
   description: "TrustLock - Secure your data",
   icons: {
-    icon: "/trustlock-logo.svg",
+    icon: "/trustlock-full.png",
+    shortcut: "/trustlock-full.png",
+    apple: "/trustlock-full.png",
   },
 };
 

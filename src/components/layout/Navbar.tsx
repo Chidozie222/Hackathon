@@ -17,7 +17,7 @@ export default function Navbar() {
 
     // Hide navbar on dashboard pages roughly (optional, but requested for "perfect UI")
     // Actually, distinct navs are better. This is the Public Navbar.
-    if (pathname.includes('/dashboard')) return null;
+    if (pathname && pathname.includes('/dashboard')) return null;
 
     return (
         <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
@@ -25,12 +25,17 @@ export default function Navbar() {
         }`}>
             <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
                 <Link href="/" className="flex items-center gap-2 group">
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-blue-500 flex items-center justify-center text-white font-bold text-lg group-hover:scale-110 transition-transform">
-                        TL
+                    <div className="relative w-[40%] h-10 group-hover:scale-110 transition-transform">
+                        {/* Using standard img tag for simplicity with space in filename, or could use Next Image */}
+                        <img 
+                            src="/Trust wallet cream.png" 
+                            alt="TrustLock Logo" 
+                            className="w-full h-full object-contain"
+                        />
                     </div>
-                    <span className="text-xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
+                    {/* <span className="text-xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
                         TrustLock
-                    </span>
+                    </span> */}
                 </Link>
 
                 <div className="hidden md:flex items-center gap-8">
