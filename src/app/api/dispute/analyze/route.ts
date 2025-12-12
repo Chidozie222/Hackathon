@@ -10,43 +10,99 @@ async function analyzeDispute(agreementSummary: string, cancellationReason: stri
         // Simulate API delay
         await new Promise(resolve => setTimeout(resolve, 1500));
         
-        // Simple logic: check if reason keywords appear in agreement
         const agreementLower = agreementSummary.toLowerCase();
         const reasonLower = cancellationReason.toLowerCase();
         
-        // Check for common valid reasons
-        const validReasons = ['broken', 'damaged', 'wrong item', 'not as described', 'defective'];
-        const invalidReasons = ['changed mind', 'don\'t want', 'too expensive'];
+        // Extract meaningful words from agreement (nouns, adjectives, colors, sizes, etc.)
+        const agreementWords = extractKeyTerms(agreementLower);
+        const reasonWords = extractKeyTerms(reasonLower);
         
-        let hasValidReason = validReasons.some(keyword => reasonLower.includes(keyword));
-        let hasInvalidReason = invalidReasons.some(keyword => reasonLower.includes(keyword));
+        // Check if buyer is complaining about something mentioned in the agreement
+        const complaintAboutAgreedTerm = reasonWords.some(word => 
+            agreementWords.includes(word) && word.length > 3 // ignore short words
+        );
         
-        // Check if the issue was mentioned in agreement (as-is, defects acknowledged, etc.)
-        const disclaimers = ['as-is', 'as is', 'may have', 'defect', 'crack', 'scratch'];
-        const issueInAgreement = disclaimers.some(keyword => agreementLower.includes(keyword));
+        // Check for explicit buyer remorse phrases
+        const buyerRemorsePatterns = [
+            'changed mind', 'change my mind', 'don\'t want', 'do not want',
+            'too expensive', 'too much', 'found cheaper', 'no longer need'
+        ];
+        const isBuyerRemorse = buyerRemorsePatterns.some(pattern => 
+            reasonLower.includes(pattern)
+        );
+        
+        // Check for legitimate quality issues
+        const qualityIssues = [
+            'broken', 'damaged', 'defective', 'not working', 'doesn\'t work',
+            'wrong item', 'different item', 'not what i ordered', 'fake', 'counterfeit'
+        ];
+        const hasQualityIssue = qualityIssues.some(issue => 
+            reasonLower.includes(issue)
+        );
+        
+        // Check if agreement acknowledges defects/issues
+        const agreementHasDisclaimer = agreementLower.match(/\b(as-is|as is|may have|might have|could have|defect|flaw|scratch|dent|crack|used|second-hand)\b/);
         
         let decision: 'REFUND_BUYER' | 'PAY_SELLER';
         let explanation: string;
         
-        if (hasInvalidReason) {
+        // Decision tree
+        if (isBuyerRemorse) {
             decision = 'PAY_SELLER';
-            explanation = 'The cancellation reason (buyer remorse) is not valid. The seller should be paid.';
-        } else if (hasValidReason && issueInAgreement) {
+            explanation = 'Buyer remorse is not a valid reason for cancellation. The seller fulfilled their obligation as agreed.';
+        } else if (complaintAboutAgreedTerm && !hasQualityIssue) {
+            // Buyer is complaining about something that was clearly stated in agreement
             decision = 'PAY_SELLER';
-            explanation = 'The buyer\'s concern was mentioned in the agreement summary. The buyer was aware of this issue before purchasing.';
-        } else if (hasValidReason && !issueInAgreement) {
+            explanation = `The buyer's complaint references terms that were explicitly mentioned in the agreement ("${reasonWords.find(w => agreementWords.includes(w) && w.length > 3)}"). The buyer was informed about this aspect before purchase.`;
+        } else if (hasQualityIssue && agreementHasDisclaimer) {
+            // Quality issue but agreement says "as-is" or similar
+            decision = 'PAY_SELLER';
+            explanation = 'While the buyer reports a quality issue, the agreement included disclaimers about the item\'s condition. The buyer accepted these terms.';
+        } else if (hasQualityIssue && !agreementHasDisclaimer) {
+            // Legitimate quality issue not mentioned
             decision = 'REFUND_BUYER';
-            explanation = 'The buyer\'s concern was not mentioned in the agreement and represents a legitimate issue. Refund the buyer.';
+            explanation = 'The buyer reports a legitimate quality issue that was not disclosed in the agreement. Refund is warranted.';
+        } else if (complaintAboutAgreedTerm && hasQualityIssue) {
+            // Edge case: complaining about agreed feature but claiming it's defective
+            decision = 'PAY_SELLER';
+            explanation = 'The buyer\'s complaint involves an aspect that was clearly stated in the agreement. Without evidence of actual defect beyond what was disclosed, the seller should be paid.';
         } else {
-            // Default: favor buyer for ambiguous cases
-            decision = 'REFUND_BUYER';
-            explanation = 'The cancellation reason is ambiguous but seems to indicate an issue not mentioned in the agreement.';
+            // Ambiguous - but if complaint mentions agreement terms, favor seller
+            if (complaintAboutAgreedTerm) {
+                decision = 'PAY_SELLER';
+                explanation = 'The complaint references aspects mentioned in the agreement. The buyer was informed of these details.';
+            } else {
+                decision = 'REFUND_BUYER';
+                explanation = 'The complaint describes issues not mentioned in the agreement. Favor the buyer in this ambiguous case.';
+            }
         }
         
         return { decision, explanation };
     };
     
     return await mockOpenAICall();
+}
+
+// Helper function to extract meaningful terms
+function extractKeyTerms(text: string): string[] {
+    // Remove common words and extract meaningful terms
+    const commonWords = new Set([
+        'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
+        'of', 'with', 'is', 'was', 'are', 'were', 'be', 'been', 'being',
+        'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could',
+        'should', 'may', 'might', 'must', 'can', 'this', 'that', 'these',
+        'those', 'i', 'you', 'he', 'she', 'it', 'we', 'they', 'my', 'your',
+        'his', 'her', 'its', 'our', 'their', 'me', 'him', 'them', 'us',
+        'not', 'no', 'yes', 'very', 'too', 'so', 'just', 'like', 'fact',
+        'about', 'dont', 'doesn', 'isn', 'because', 'want'
+    ]);
+    
+    // Split into words, remove punctuation, filter common words
+    return text
+        .toLowerCase()
+        .replace(/[^\w\s]/g, ' ')
+        .split(/\s+/)
+        .filter(word => word.length > 0 && !commonWords.has(word));
 }
 
 // Real OpenAI implementation (commented out - uncomment when you have API key)
@@ -135,7 +191,38 @@ export async function POST(req: NextRequest) {
         console.log('🤖 AI Decision:', decision);
         console.log('   Explanation:', explanation);
         
-        // Update order with AI decision
+        // Check if order has been picked up yet
+        const hasBeenPickedUp = order.status === 'PICKED_UP' || 
+                               order.status === 'IN_TRANSIT' || 
+                               order.status === 'DELIVERED';
+        
+        // Special handling: If dispute is invalid (PAY_SELLER) and order hasn't been picked up
+        // Allow delivery to continue but mark dispute as resolved in seller's favor
+        if (decision === 'PAY_SELLER' && !hasBeenPickedUp) {
+            console.log('✅ Invalid cancellation before pickup - delivery will continue');
+            
+            // Update order: Keep status as PAID (or current status), but resolve dispute
+            await updateOrder(orderId, {
+                disputeResolution: {
+                    aiDecision: decision,
+                    aiExplanation: explanation + ' Delivery will proceed as the cancellation was made before pickup.',
+                    resolvedAt: Date.now()
+                },
+                // Remove DISPUTED status, revert to appropriate status
+                status: order.status === 'DISPUTED' ? 'PAID' : order.status
+            });
+            
+            return NextResponse.json({ 
+                success: true,
+                decision,
+                explanation: explanation + ' Delivery will continue.',
+                deliveryContinues: true,
+                message: 'Invalid cancellation detected. Delivery will proceed and seller will be paid upon completion.'
+            });
+        }
+        
+        // If dispute is valid (REFUND_BUYER) or order already picked up
+        // Standard dispute resolution
         await updateOrder(orderId, {
             disputeResolution: {
                 aiDecision: decision,
@@ -148,7 +235,10 @@ export async function POST(req: NextRequest) {
             success: true,
             decision,
             explanation,
-            message: 'Dispute analyzed and resolved'
+            deliveryContinues: false,
+            message: hasBeenPickedUp 
+                ? 'Dispute analyzed. Resolution will be applied after delivery confirmation.'
+                : 'Dispute analyzed and resolved'
         });
         
     } catch (error: any) {

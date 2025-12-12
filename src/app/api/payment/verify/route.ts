@@ -4,6 +4,9 @@ import { createCustodialEscrow } from '@/lib/serverWallet';
 import { addManagedEscrow } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
 
+// In-memory lock to prevent concurrent payment processing
+const processingLocks = new Map<string, Promise<any>>();
+
 export async function GET(req: NextRequest) {
     const searchParams = req.nextUrl.searchParams;
     const reference = searchParams.get('reference');
@@ -19,60 +22,86 @@ export async function GET(req: NextRequest) {
             const orderId = searchParams.get('orderId');
             
             if (orderId) {
-                // Get order details
-                const { getOrderById, getUserById } = await import('@/lib/database');
-                const order = await getOrderById(orderId);
-                
-                if (!order) {
-                    return NextResponse.redirect(new URL('/?payment=failed&reason=order_not_found', req.url));
+                // Check if this order is already being processed
+                if (processingLocks.has(orderId)) {
+                    console.log(`🔒 Order ${orderId} is already being processed, waiting...`);
+                    await processingLocks.get(orderId);
+                    console.log(`✅ Previous processing completed, redirecting to tracking...`);
+                    return NextResponse.redirect(new URL(`/order/${orderId}/track`, req.url));
                 }
+                
+                // Create a lock for this order
+                const processingPromise = (async () => {
+                    try {
+                        // Get order details
+                        const { getOrderById, getUserById } = await import('@/lib/database');
+                        const order = await getOrderById(orderId);
+                        
+                        if (!order) {
+                            return NextResponse.redirect(new URL('/?payment=failed&reason=order_not_found', req.url));
+                        }
 
-                const seller = await getUserById(order.sellerId);
-                if (!seller?.walletAddress) {
-                    throw new Error("Seller wallet address not found");
-                }
+                        // IDEMPOTENCY CHECK: If order is already paid, redirect to tracking
+                        if (order.status === 'PAID' && order.escrowAddress) {
+                            console.log(`ℹ️ Order ${orderId} already paid. Redirecting to tracking...`);
+                            return NextResponse.redirect(new URL(`/order/${orderId}/track`, req.url));
+                        }
+
+                        const seller = await getUserById(order.sellerId);
+                        if (!seller?.walletAddress) {
+                            throw new Error("Seller wallet address not found");
+                        }
+                        
+                        // Convert NGN to ETH equivalent for blockchain
+                        // Using a simple conversion: 1 ETH = 1,000,000 NGN (mock rate)
+                        const amountInNGN = parseFloat(order.price);
+                        const amountInETH = (amountInNGN / 1000000).toFixed(4);
+                        
+                        // Create blockchain escrow with the converted amount
+                        const { createCustodialEscrow } = await import('@/lib/serverWallet');
+                        
+                        console.log(`💳 Creating escrow for order ${orderId}...`);
+                        const { hash: txHash, escrowAddress } = await createCustodialEscrow(
+                            seller.walletAddress, // use actual wallet address
+                            amountInETH    // amount in ETH
+                        );
+                        
+                        // Update order status to PAID and save blockchain details
+                        const { updateOrder } = await import('@/lib/database');
+                        await updateOrder(orderId, {
+                            status: 'PAID',
+                            paymentReference: reference,
+                            escrowAddress: escrowAddress || undefined
+                        });
+                        
+                        // Broadcast new job to riders if it's a platform job
+                        if (order.riderType === 'PLATFORM') {
+                            const { broadcastNewJob } = await import('@/lib/socketBroadcast');
+                            broadcastNewJob({
+                                ...order,
+                                status: 'PAID',
+                                paymentReference: reference,
+                                escrowAddress: escrowAddress || undefined
+                            });
+                        }
+                        
+                        console.log(`✅ Payment verified for order ${orderId}`);
+                        console.log(`💰 Amount: ₦${amountInNGN} → ${amountInETH} ETH`);
+                        console.log(`⛓️ Blockchain escrow created at: ${escrowAddress}`);
+                        console.log(`📝 Transaction hash: ${txHash}`);
+                        
+                        return NextResponse.redirect(new URL(`/order/${orderId}/track`, req.url));
+                    } finally {
+                        // Release lock after processing
+                        processingLocks.delete(orderId);
+                    }
+                })();
                 
-                // Convert NGN to ETH equivalent for blockchain
-                // Using a simple conversion: 1 ETH = 1,000,000 NGN (mock rate)
-                const amountInNGN = parseFloat(order.price);
-                const amountInETH = (amountInNGN / 1000000).toFixed(4);
+                // Store the promise
+                processingLocks.set(orderId, processingPromise);
                 
-                // Create blockchain escrow with the converted amount
-                const { createCustodialEscrow } = await import('@/lib/serverWallet');
-                const { hash: txHash, escrowAddress } = await createCustodialEscrow(
-                    seller.walletAddress, // use actual wallet address
-                    amountInETH    // amount in ETH
-                );
-                
-                // Update order status to PAID and save blockchain details
-                const { updateOrder } = await import('@/lib/database');
-                await updateOrder(orderId, {
-                    status: 'PAID',
-                    paymentReference: reference,
-                    escrowAddress: escrowAddress || undefined
-                });
-                
-                // Broadcast new job to riders if it's a platform job
-                if (order.riderType === 'PLATFORM') {
-                    const { broadcastNewJob } = await import('@/lib/socketBroadcast');
-                    // We need to pass the updated order object (or at least the fields the rider dashboard needs)
-                    // Since updateOrder doesn't return the object, let's construct it or re-fetch active fields.
-                    // simpler: construct the job object manually with new status
-                    broadcastNewJob({
-                        ...order,
-                        status: 'PAID',
-                        paymentReference: reference,
-                        escrowAddress: escrowAddress || undefined
-                    });
-                }
-                
-                console.log(`✅ Payment verified for order ${orderId}`);
-                console.log(`💰 Amount: ₦${amountInNGN} → ${amountInETH} ETH`);
-                console.log(`⛓️ Blockchain escrow created at: ${escrowAddress}`);
-                console.log(`📝 Transaction hash: ${txHash}`);
-                
-                // Redirect to tracking page
-                return NextResponse.redirect(new URL(`/order/${orderId}/track`, req.url));
+                // Wait for it to complete
+                return await processingPromise;
             }
         }
         
