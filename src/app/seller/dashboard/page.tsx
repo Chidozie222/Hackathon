@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import SellerSidebar from '@/components/layout/SellerSidebar';
 import { useSocket, joinSellerDashboard } from '@/lib/socket';
+import { useToast } from '@/context/ToastContext';
 
 export default function SellerDashboard() {
     const router = useRouter();
