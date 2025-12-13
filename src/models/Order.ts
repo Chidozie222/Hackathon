@@ -46,6 +46,12 @@ export interface IOrder {
         longitude: number;
         timestamp: number;
     }>;
+    pendingEscrow?: {
+        sellerAddress: string;
+        amount: string;
+        currency: string;
+        createdAt: number;
+    };
     createdAt: number;
 }
 
@@ -98,6 +104,12 @@ const OrderSchema = new Schema<IOrder>({
         longitude: Number,
         timestamp: Number
     }],
+    pendingEscrow: {
+        sellerAddress: String,
+        amount: String,
+        currency: String,
+        createdAt: Number
+    },
     createdAt: { type: Number, required: true }
 }, {
     timestamps: false,

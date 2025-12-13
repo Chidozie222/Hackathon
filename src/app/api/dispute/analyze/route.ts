@@ -98,15 +98,11 @@ async function analyzeDisputeMock(agreementSummary: string, cancellationReason: 
         const agreementWords = extractKeyTerms(agreementLower);
         const reasonWords = extractKeyTerms(reasonLower);
         
-        // Check if buyer is complaining about something mentioned in the agreement
-        const complaintAboutAgreedTerm = reasonWords.some(word => 
-            agreementWords.includes(word) && word.length > 3 // ignore short words
-        );
-        
         // Check for explicit buyer remorse phrases
         const buyerRemorsePatterns = [
             'changed mind', 'change my mind', 'don\'t want', 'do not want',
-            'too expensive', 'too much', 'found cheaper', 'no longer need'
+            'too expensive', 'too much', 'found cheaper', 'no longer need',
+            'dont need'
         ];
         const isBuyerRemorse = buyerRemorsePatterns.some(pattern => 
             reasonLower.includes(pattern)
@@ -115,7 +111,8 @@ async function analyzeDisputeMock(agreementSummary: string, cancellationReason: 
         // Check for legitimate quality issues
         const qualityIssues = [
             'broken', 'damaged', 'defective', 'not working', 'doesn\'t work',
-            'wrong item', 'different item', 'not what i ordered', 'fake', 'counterfeit'
+            'wrong item', 'different item', 'not what i ordered', 'fake', 'counterfeit',
+            'doesnt work', 'cracked', 'faulty'
         ];
         const hasQualityIssue = qualityIssues.some(issue => 
             reasonLower.includes(issue)
@@ -124,38 +121,73 @@ async function analyzeDisputeMock(agreementSummary: string, cancellationReason: 
         // Check if agreement acknowledges defects/issues
         const agreementHasDisclaimer = agreementLower.match(/\b(as-is|as is|may have|might have|could have|defect|flaw|scratch|dent|crack|used|second-hand)\b/);
         
+        // IMPROVED: Check if SPECIFIC complaint feature was mentioned in agreement
+        // Not just any word overlap
+        const specificComplaintInAgreement = (() => {
+            // Define specific feature categories
+            const colorWords = ['color', 'colour', 'red', 'blue', 'green', 'black', 'white', 'yellow', 'orange', 'purple', 'pink', 'brown', 'gray', 'grey'];
+            const sizeWords = ['size', 'small', 'medium', 'large', 'xl', 'xxl', 'xs'];
+            const conditionWords = ['new', 'used', 'refurbished', 'brand'];
+            
+            // Check for color-specific complaints
+            const complaintColors = reasonWords.filter(w => colorWords.includes(w));
+            const agreementColors = agreementWords.filter(w => colorWords.includes(w));
+            
+            if (complaintColors.length > 0 && agreementColors.length > 0) {
+                // Check if buyer is complaining about a color that WAS mentioned
+                const sameColor = complaintColors.some(c => agreementColors.includes(c));
+                if (sameColor) {
+                    return true; // Buyer complaining about disclosed color
+                }
+            }
+            
+            // Check for size-specific complaints
+            const complaintSizes = reasonWords.filter(w => sizeWords.includes(w));
+            const agreementSizes = agreementWords.filter(w => sizeWords.includes(w));
+            
+            if (complaintSizes.length > 0 && agreementSizes.length > 0) {
+                return true; // Size was mentioned in agreement
+            }
+            
+            // Check for condition complaints
+            const complaintCondition = reasonWords.filter(w => conditionWords.includes(w));
+            const agreementCondition = agreementWords.filter(w => conditionWords.includes(w));
+            
+            if (complaintCondition.length > 0 && agreementCondition.length > 0) {
+                return true; // Condition was mentioned
+            }
+            
+            return false;
+        })();
+        
         let decision: 'REFUND_BUYER' | 'PAY_SELLER';
         let explanation: string;
         
-        // Decision tree
-        if (isBuyerRemorse) {
-            decision = 'PAY_SELLER';
-            explanation = 'Buyer remorse is not a valid reason for cancellation. The seller fulfilled their obligation as agreed.';
-        } else if (complaintAboutAgreedTerm && !hasQualityIssue) {
-            // Buyer is complaining about something that was clearly stated in agreement
-            decision = 'PAY_SELLER';
-            explanation = `The buyer's complaint references terms that were explicitly mentioned in the agreement ("${reasonWords.find(w => agreementWords.includes(w) && w.length > 3)}"). The buyer was informed about this aspect before purchase.`;
-        } else if (hasQualityIssue && agreementHasDisclaimer) {
-            // Quality issue but agreement says "as-is" or similar
-            decision = 'PAY_SELLER';
-            explanation = 'While the buyer reports a quality issue, the agreement included disclaimers about the item\'s condition. The buyer accepted these terms.';
-        } else if (hasQualityIssue && !agreementHasDisclaimer) {
-            // Legitimate quality issue not mentioned
+        // IMPROVED DECISION TREE - Quality issues checked FIRST
+        
+        // Priority 1: Quality issues (most important)
+        if (hasQualityIssue && !agreementHasDisclaimer) {
             decision = 'REFUND_BUYER';
-            explanation = 'The buyer reports a legitimate quality issue that was not disclosed in the agreement. Refund is warranted.';
-        } else if (complaintAboutAgreedTerm && hasQualityIssue) {
-            // Edge case: complaining about agreed feature but claiming it's defective
+            explanation = 'The buyer reports a legitimate quality issue (broken, damaged, or defective) that was not disclosed in the agreement. Refund is warranted.';
+        }
+        else if (hasQualityIssue && agreementHasDisclaimer) {
             decision = 'PAY_SELLER';
-            explanation = 'The buyer\'s complaint involves an aspect that was clearly stated in the agreement. Without evidence of actual defect beyond what was disclosed, the seller should be paid.';
-        } else {
-            // Ambiguous - but if complaint mentions agreement terms, favor seller
-            if (complaintAboutAgreedTerm) {
-                decision = 'PAY_SELLER';
-                explanation = 'The complaint references aspects mentioned in the agreement. The buyer was informed of these details.';
-            } else {
-                decision = 'REFUND_BUYER';
-                explanation = 'The complaint describes issues not mentioned in the agreement. Favor the buyer in this ambiguous case.';
-            }
+            explanation = 'While the buyer reports a quality issue, the agreement included disclaimers about the item\'s condition (as-is, used, etc.). The buyer accepted these terms.';
+        }
+        // Priority 2: Buyer remorse
+        else if (isBuyerRemorse) {
+            decision = 'PAY_SELLER';
+            explanation = 'Buyer remorse (changed mind, no longer want) is not a valid reason for cancellation. The seller fulfilled their obligation as agreed.';
+        }
+        // Priority 3: Specific complaint about disclosed feature
+        else if (specificComplaintInAgreement) {
+            decision = 'PAY_SELLER';
+            explanation = 'The buyer\'s complaint is about a specific feature (color, size, or condition) that was explicitly mentioned in the agreement. The buyer was informed before purchase.';
+        }
+        // Priority 4: Ambiguous cases - favor buyer
+        else {
+            decision = 'REFUND_BUYER';
+            explanation = 'The complaint describes concerns that were not clearly addressed in the agreement. In ambiguous cases, we favor the buyer.';
         }
         
         return { decision, explanation };

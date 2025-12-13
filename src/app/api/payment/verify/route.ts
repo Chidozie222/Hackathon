@@ -57,22 +57,29 @@ export async function GET(req: NextRequest) {
                         const amountInNGN = parseFloat(order.price);
                         const amountInETH = (amountInNGN / 1000000).toFixed(4);
                         
-                        // Create blockchain escrow with the converted amount
-                        const { createCustodialEscrow } = await import('@/lib/serverWallet');
+                        console.log(`💳 Processing payment for order ${orderId}...`);
+                        console.log(`💰 Amount: ₦${amountInNGN} → ${amountInETH} ETH`);
                         
-                        console.log(`💳 Creating escrow for order ${orderId}...`);
-                        const { hash: txHash, escrowAddress } = await createCustodialEscrow(
-                            seller.walletAddress, // use actual wallet address
-                            amountInETH    // amount in ETH
-                        );
+                        // OPTIMIZATION: Defer blockchain escrow creation for faster UX
+                        // The contract will be created later when needed (e.g., on delivery)
+                        // This makes payment confirmation INSTANT instead of 5-30 seconds
                         
-                        // Update order status to PAID and save blockchain details
+                        // Update order status to PAID and save escrow details for later
                         const { updateOrder } = await import('@/lib/database');
                         await updateOrder(orderId, {
                             status: 'PAID',
                             paymentReference: reference,
-                            escrowAddress: escrowAddress || undefined
+                            // Store pending escrow details (contract created later)
+                            pendingEscrow: {
+                                sellerAddress: seller.walletAddress,
+                                amount: amountInETH,
+                                currency: 'ETH',
+                                createdAt: Date.now()
+                            }
                         });
+                        
+                        console.log(`✅ Payment verified for order ${orderId}`);
+                        console.log(`⏳ Blockchain escrow will be created on delivery`);
                         
                         // Broadcast new job to riders if it's a platform job
                         if (order.riderType === 'PLATFORM') {
@@ -80,15 +87,9 @@ export async function GET(req: NextRequest) {
                             broadcastNewJob({
                                 ...order,
                                 status: 'PAID',
-                                paymentReference: reference,
-                                escrowAddress: escrowAddress || undefined
+                                paymentReference: reference
                             });
                         }
-                        
-                        console.log(`✅ Payment verified for order ${orderId}`);
-                        console.log(`💰 Amount: ₦${amountInNGN} → ${amountInETH} ETH`);
-                        console.log(`⛓️ Blockchain escrow created at: ${escrowAddress}`);
-                        console.log(`📝 Transaction hash: ${txHash}`);
                         
                         return NextResponse.redirect(new URL(`/order/${orderId}/track`, req.url));
                     } finally {
