@@ -57,12 +57,15 @@ Intelligent analysis of agreements vs. cancellation reasons:
 - **Automatic Conversion:** NGN to ETH for seamless UX
 - **Immutable Records:** All disputes stored on-chain
 
-### 🤖 **AI-Powered Dispute Analysis**
+### 🤖 **AI-Powered Dispute Analysis** (OpenAI GPT-4)
+- **GPT-4 Integration:** Real AI analysis with OpenAI API
+- **Intelligent Fallback:** Mock analysis if API key not configured
 - **Term Extraction:** Identifies key terms in agreements and complaints
 - **Overlap Detection:** Finds matching terms between agreement and complaint
 - **Pattern Recognition:** Detects buyer remorse, valid issues, as-is sales
-- **Instant Decisions:** PAY_SELLER or REFUND_BUYER in seconds
-- **Transparent Explanations:** Clear reasoning for every decision
+- **Instant Decisions:** PAY_SELLER or REFUND_BUYER in 2-4 seconds
+- **Transparent Explanations:** Natural language reasoning for every decision
+- **Cost Effective:** ~$0.01 per dispute analysis with GPT-4
 
 **Example:**
 ```
@@ -81,12 +84,15 @@ Action: Delivery continues, seller gets paid
 - Automatic gas fee management
 - No crypto knowledge required
 
-### 🚚 **Smart Delivery Flow**
+### 🚚 **Smart Delivery Flow & GPS Tracking**
 - **Pre-Pickup Invalid Disputes → Delivery Continues**
 - **Post-Pickup Disputes → Standard Resolution**
-- Real-time status updates
+- **Real-Time GPS Tracking:** Live rider location on interactive map
+- **Leaflet Maps:** Beautiful map interface with OpenStreetMap
+- **Socket.io Updates:** Location updates every 10 seconds
+- **Browser Geolocation:** No app needed, works in browser
+- **Privacy-First:** Only tracks during active delivery
 - QR code verification (ready for implementation)
-- Rider GPS tracking (ready for integration)
 
 ### 🔐 **Security & Privacy**
 - Encrypted wallet management
@@ -123,10 +129,17 @@ Action: Delivery continues, seller gets paid
 - **Wallet Management:** Server-side custodial wallet
 
 ### **AI/ML**
-- Custom term extraction algorithm
-- Pattern matching for dispute types
-- Ready for OpenAI API integration
-- Mock implementation for testing
+- **OpenAI GPT-4:** Real AI dispute analysis
+- **Intelligent Fallback:** Mock algorithm when API unavailable
+- **Term Extraction:** Custom NLP for key term identification
+- **Pattern Matching:** Buyer remorse, quality issues, disclaimers
+- **JSON Structured Output:** Consistent, validated decisions
+
+### **GPS & Mapping**
+- **Leaflet.js:** Interactive maps with no API key required
+- **OpenStreetMap:** Free map tiles
+- **Browser Geolocation API:** Native GPS access
+- **Real-time Updates:** Socket.io location broadcasting
 
 ---
 
@@ -220,6 +233,9 @@ MONGODB_URI=mongodb://localhost:27017/escrow-platform
 # Blockchain (Local Development)
 SERVER_WALLET_PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 NEXT_PUBLIC_FACTORY_ADDRESS=0x5FbDB2315678afecb367f032d93F642f64180aa3
+
+# OpenAI (Optional - uses mock if not set)
+OPENAI_API_KEY=sk-proj-your-api-key-here
 
 # Blockchain (Sepolia Testnet - Optional)
 SEPOLIA_RPC_URL=https://eth-sepolia.g.alchemy.com/v2/YOUR_API_KEY
@@ -391,7 +407,10 @@ Unlike traditional platforms that stop delivery when buyers cancel, TrustLock:
 
 ### **Disputes**
 - `POST /api/dispute/request-cancellation` - Submit cancellation request
-- `POST /api/dispute/analyze` - AI analyzes dispute and makes decision
+- `POST /api/dispute/analyze` - AI analyzes dispute with GPT-4 or mock
+
+### **GPS Tracking**
+- `POST /api/rider/update-location` - Rider sends GPS coordinates
 
 ### **Verification**
 - `POST /api/verify/identity` - NIN/BVN verification for riders
@@ -419,8 +438,9 @@ Unlike traditional platforms that stop delivery when buyers cancel, TrustLock:
 ## 📊 Future Enhancements
 
 - [ ] Real payment gateway integration (Paystack/Flutterwave)
-- [ ] Actual OpenAI API for dispute analysis
-- [ ] GPS tracking for riders
+- [x] **OpenAI GPT-4 API for dispute analysis** ✅
+- [x] **Real-time GPS tracking for riders** ✅
+- [x] **Interactive maps with Leaflet.js** ✅
 - [ ] Photo evidence upload
 - [ ] Review and rating system
 - [ ] Multi-signature escrow
