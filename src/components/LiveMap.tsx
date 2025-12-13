@@ -2,6 +2,7 @@
 import { useEffect, useState, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import 'leaflet/dist/leaflet.css';
+import { useSocket } from '@/lib/socket';
 
 // Dynamically import Leaflet to avoid SSR issues
 const MapContainer = dynamic(
@@ -37,37 +38,37 @@ export default function LiveMap({ orderId, deliveryAddress }: LiveMapProps) {
     const [riderLocation, setRiderLocation] = useState<Location | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const mapRef = useRef<any>(null);
+    const { socket, isConnected } = useSocket();
 
     useEffect(() => {
-        // Connect to Socket.io for real-time updates
-        const socket = require('socket.io-client')();
+        // Fix Leaflet default marker icons in Next.js
+        if (typeof window !== 'undefined') {
+            const L = require('leaflet');
+            delete (L.Icon.Default.prototype as any)._getIconUrl;
+            L.Icon.Default.mergeOptions({
+                iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+                iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+            });
+        }
+    }, []);
 
-        // Join order room
-        socket.emit('join-room', `order-${orderId}`);
-
-        // Listen for location updates
-        socket.on('location-updated', (location: Location) => {
-            console.log('📍 Received location update:', location);
-            setRiderLocation(location);
-            setIsLoading(false);
-
-            // Pan map to new location if map is ready
-            if (mapRef.current) {
-                mapRef.current.setView([location.latitude, location.longitude], 15);
-            }
-        });
-
+    useEffect(() => {
         // Fetch initial location from API endpoint
         const fetchInitialLocation = async () => {
             try {
                 const response = await fetch(`/api/orders/${orderId}`);
                 const data = await response.json();
                 
+                console.log('📍 Fetched order data:', data);
+                
                 if (data.success && data.order?.riderLocation) {
+                    console.log('📍 Setting initial rider location:', data.order.riderLocation);
                     setRiderLocation(data.order.riderLocation);
                     setIsLoading(false);
                 } else {
                     // No location yet, wait for Socket.io updates
+                    console.log('📍 No rider location yet, waiting for updates...');
                     setIsLoading(false);
                 }
             } catch (error) {
@@ -77,12 +78,39 @@ export default function LiveMap({ orderId, deliveryAddress }: LiveMapProps) {
         };
 
         fetchInitialLocation();
+    }, [orderId]);
+
+    useEffect(() => {
+        if (!socket || !isConnected) {
+            console.log('📍 Socket not connected yet');
+            return;
+        }
+
+        console.log('📍 Joining order room:', `order-${orderId}`);
+        
+        // Join order room
+        socket.emit('join-order', orderId);
+
+        // Listen for location updates
+        const handleLocationUpdate = (location: Location) => {
+            console.log('📍 Received location update:', location);
+            setRiderLocation(location);
+            setIsLoading(false);
+
+            // Pan map to new location if map is ready
+            if (mapRef.current) {
+                mapRef.current.setView([location.latitude, location.longitude], 15);
+            }
+        };
+
+        socket.on('location-updated', handleLocationUpdate);
 
         return () => {
-            socket.emit('leave-room', `order-${orderId}`);
-            socket.disconnect();
+            socket.off('location-updated', handleLocationUpdate);
+            socket.emit('leave-order', orderId);
+            console.log('📍 Left order room:', `order-${orderId}`);
         };
-    }, [orderId]);
+    }, [socket, isConnected, orderId]);
 
     if (typeof window === 'undefined') {
         return <div className="bg-slate-800 rounded-lg p-8 text-center">Loading map...</div>;
