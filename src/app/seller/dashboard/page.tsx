@@ -91,6 +91,34 @@ export default function SellerDashboard() {
         }
     }, [isConnected, socket, user, showToast]);
 
+    // Refresh orders when tab becomes visible (better than focus event)
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (!document.hidden && user) {
+                console.log('🔄 Tab visible - refreshing orders');
+                fetchOrders(user.id);
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, [user]);
+
+    // Periodic refresh every 30 seconds to catch any missed updates
+    useEffect(() => {
+        if (!user) return;
+
+        const interval = setInterval(() => {
+            console.log('⏰ Periodic refresh - updating orders');
+            fetchOrders(user.id);
+        }, 30000); // 30 seconds
+
+        return () => clearInterval(interval);
+    }, [user]);
+
     if (!user) return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-500">Loading Dashboard...</div>;
 
     return (

@@ -35,6 +35,23 @@ export interface IOrder {
     deliveryTime?: number;
     sanitized?: boolean;
     sanitizedAt?: number;
+    riderLocation?: {
+        latitude: number;
+        longitude: number;
+        accuracy: number;
+        timestamp: number;
+    };
+    locationHistory?: Array<{
+        latitude: number;
+        longitude: number;
+        timestamp: number;
+    }>;
+    pendingEscrow?: {
+        sellerAddress: string;
+        amount: string;
+        currency: string;
+        createdAt: number;
+    };
     createdAt: number;
 }
 
@@ -76,6 +93,23 @@ const OrderSchema = new Schema<IOrder>({
     deliveryTime: Number,
     sanitized: Boolean,
     sanitizedAt: Number,
+    riderLocation: {
+        latitude: Number,
+        longitude: Number,
+        accuracy: Number,
+        timestamp: Number
+    },
+    locationHistory: [{
+        latitude: Number,
+        longitude: Number,
+        timestamp: Number
+    }],
+    pendingEscrow: {
+        sellerAddress: String,
+        amount: String,
+        currency: String,
+        createdAt: Number
+    },
     createdAt: { type: Number, required: true }
 }, {
     timestamps: false,
